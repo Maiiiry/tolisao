@@ -1,7 +1,10 @@
 const { chromium } = require('./_pw.cjs');
 const fs = require('fs'), path = require('path');
 const raiz = path.join(__dirname, '..');
-const face = 'data:image/png;base64,' + fs.readFileSync(path.join(raiz, 'diva.png')).toString('base64');
+// os ícones do app (ficha-*.png): a diva na ficha (node specs/icone.cjs).
+// a diva vem do diva-ia.png, o diva.png reduzido a 64 px e ampliado 4x com o Real-ESRGAN (x4plus):
+// o diva.png já é um emoticon minúsculo ampliado, e direto nele o ícone saía borrado.
+const face = 'data:image/png;base64,' + fs.readFileSync(path.join(__dirname, 'diva-ia.png')).toString('base64');
 
 (async () => {
   const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM }); const p = await b.newPage();
@@ -10,6 +13,7 @@ const face = 'data:image/png;base64,' + fs.readFileSync(path.join(raiz, 'diva.pn
     const c = (document.getElementById('c')); c.width = c.height = lado;
     const x = c.getContext('2d'), m = lado / 2, R = visivel / 2, F1 = '#9a5b00', F2 = '#fff8e6';
     const img = new Image(); img.src = face; await img.decode();
+    x.imageSmoothingQuality = 'high';
     x.clearRect(0, 0, lado, lado);
     if (fundoCheio) { x.fillStyle = F1; x.fillRect(0, 0, lado, lado); }
     else { x.beginPath(); x.arc(m, m, R, 0, 7); x.fillStyle = F1; x.fill(); }

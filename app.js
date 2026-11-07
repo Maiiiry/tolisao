@@ -51,6 +51,7 @@
   // e no style.css; se for escuro, no ESCUROS também. O natal é claro: o papel de sempre com pisca-pisca e a diva de gorro,
   // e é o padrão de 1º de novembro até o dia de Reis (NATAL, a virada do dia no relógio do aparelho). Quem toca no papel
   // fica nele
+  // o tema.js, no <head>, faz a mesma conta antes da primeira pintura: mudou o NATAL, o ESCUROS ou o BARRA, mude lá
   const NATAL = [new Date(2026, 10, 1), new Date(2027, 0, 7)];
   const TEMA = Date.now() >= NATAL[0].getTime() && Date.now() < NATAL[1].getTime() ? 'natal' : '';
   const TEMAS = [
@@ -4088,6 +4089,10 @@
     itemsOpen = !itemsOpen;
     if (itemsOpen) setDevice('itemsOpened', true);
     render();
+    // o leque é só do toque que abre (o style.css): tira no fim, senão o próximo render abria de novo
+    const corpo = $('#itemsBody');
+    corpo.classList.toggle('leque', itemsOpen && !semMovimento());
+    if (itemsOpen) setTimeout(() => corpo.classList.remove('leque'), 700);
   };
   /** @type {HTMLElement | null} */
   let sheetDeQuem = null;

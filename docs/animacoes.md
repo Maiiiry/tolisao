@@ -51,3 +51,29 @@ lista estica e encolhe pelo `::details-content` e a setinha gira.
 .evs details.antigos[open]>.ev:nth-of-type(4){animation-delay:180ms}
 .evs details.antigos[open]>.ev:nth-of-type(n+5){animation-delay:240ms}
 ```
+
+## ver os itens (cena `aperta`)
+
+no ar: **C, leque** (a lista estica e os itens saem de trás da linha; o `.leque` vem do toque, no `app.js`). as três
+dividem a base: o `#itemsBody` estica e encolhe pelo `interpolate-size`, e o `display` espera o fim pra sumir.
+
+**A, gaveta:** só a base.
+
+```css
+#itemsBody{interpolate-size:allow-keywords;overflow:clip;height:auto;transition:height .4s cubic-bezier(.3,.6,.4,1),display .4s allow-discrete}
+#itemsBody.hidden{height:0}
+@starting-style{#itemsBody:not(.hidden){height:0}}
+```
+
+**B, cascata:** a base, e cada item cai no lugar um depois do outro (no ar, trocaria o leque pelo `linhaX` no
+`#itemsBody.leque #expenses>*`).
+
+```css
+@keyframes linhaX{0%{opacity:0;transform:translateY(-10px)}70%{opacity:1;transform:translateY(1.5px)}100%{opacity:1;transform:none}}
+#itemsBody.leque #expenses>*{animation:linhaX .3s ease-out both}
+#itemsBody.leque #expenses>:nth-child(2){animation-delay:40ms}
+#itemsBody.leque #expenses>:nth-child(3){animation-delay:80ms}
+#itemsBody.leque #expenses>:nth-child(4){animation-delay:120ms}
+#itemsBody.leque #expenses>:nth-child(5){animation-delay:160ms}
+#itemsBody.leque #expenses>:nth-child(n+6){animation-delay:200ms}
+```

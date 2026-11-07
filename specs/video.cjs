@@ -260,6 +260,9 @@ const CENAS = {
     acao: ABRE_ANTIGOS },
   antigos9: { nome: 'nove quitados antigos abrindo e fechando', inicio: true, vel: 1, semeia: SEMEIA, semeiaArg: 9,
     acao: ABRE_ANTIGOS },
+  // recarregar com o evento já no aparelho: a cópia aparece na hora, e o banco (demorando) atualiza por cima
+  recarrega: { nome: 'abrir o evento e recarregar a página, com o banco demorando', quem: 'Lia', atrasoPix: 600, atrasoSala: 1500,
+    vel: 1, acao: async p => { await p.waitForTimeout(2500); await p.reload(); await p.waitForTimeout(3500); } },
   // o banco demora: o carregando fica na tela e a nota sai da impressora quando a sala chega
   imprime: { nome: 'abrir o evento: o carregando e a nota saindo da impressora', quem: 'Lia', atrasoPix: 600, atrasoSala: 1800,
     vel: 1, acao: async p => { await p.waitForTimeout(3500); } },
@@ -294,7 +297,8 @@ async function video(opts = {}) {
     const erros = []; p.on('pageerror', e => erros.push(e.message));
     const sala = await sha256(dados.name);
     if (!c.inicio) await p.addInitScript(([sala, code, quem, gente]) => {
-      try { localStorage.setItem('tolisa', JSON.stringify({ lastRoom: { code, id: sala } }));
+      try { if (localStorage.getItem('tolisa')) return; // recarregar não apaga o que o app guardou
+        localStorage.setItem('tolisa', JSON.stringify({ lastRoom: { code, id: sala } }));
         const eu = gente.find(x => x.name === quem);
         if (eu) localStorage.setItem(`tolisa:${sala}`, JSON.stringify({ me: eu.id })); } catch {}
     }, [sala, dados.name, c.quem, dados.people]);

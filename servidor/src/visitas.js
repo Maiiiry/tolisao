@@ -2,7 +2,12 @@
 // O nó não tem .read, então quem lê é a conta de serviço do Firebase (VISITAS_SA: uma conta só de leitura, papel "Firebase Realtime Database Viewer", e não a de admin que publica as regras).
 //
 //   GET  /visitas            → a página com o campo da chave (nada de número)
-//   POST /visitas  chave=…   → a mesma página com o resumo
+//   POST /visitas  chave=…   → a mesma página com o resumo e a busca de eventos
+//
+// A busca roda no navegador do dono: a página leva um token de uma hora da conta de serviço (só leitura) e baixa o
+// rooms.json direto do Firebase, que no Worker estouraria o tempo de CPU do plano grátis. O código do evento não fica
+// no banco (a sala é o sha-256 dele): o link só volta quando o código é o nome (os eventos do começo) ou está numa
+// lista guardada com a digital (KV digital:<id>, que a página leva junto).
 //
 // A chave é o secret VISITAS_CHAVE do Worker (vem do secret de mesmo nome no GitHub, pelo servidor.yml). Ela vai no
 // corpo do POST e não na URL, pra não ficar no histórico nem em log. Sem a chave ou sem a conta de serviço, 503.
@@ -137,18 +142,26 @@ h2{text-align:center;font-size:15px;letter-spacing:1px;margin:0 0 10px;text-tran
 form{display:flex;flex-direction:column;gap:10px;margin-top:10px}
 input,button{font:inherit;padding:10px;border:2px solid var(--ink);background:transparent;color:var(--ink)}
 button{background:var(--ink);color:var(--paper);cursor:pointer}
-.err{color:#c0392b;text-align:center}`;
+.err{color:#c0392b;text-align:center}
+#busca{flex-direction:row}#busca input{flex:1;min-width:0}
+.ev{margin:12px 0;padding-bottom:10px;border-bottom:1px dotted var(--ink2)}.ev .muted{font-size:14px}
+.ev a{color:var(--amber)}`;
 
-/** a página inteira @param {string} miolo */
-function pagina(miolo, status = 200) {
+/** a página inteira. Com `script`, ele entra com nonce e a página pode falar com o banco
+ * @param {string} miolo @param {{ script: string, banco: string } | null} [js] */
+function pagina(miolo, status = 200, js = null) {
+  const nonce = b64url(crypto.getRandomValues(new Uint8Array(16)));
+  const csp = js
+    ? `default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${new URL(js.banco).origin}; form-action 'self'; frame-ancestors 'none'`
+    : "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'";
   return new Response(
-    `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>visitas · tô lisa</title><style>${CSS}</style></head><body><main><h1>tô lisa</h1><div class="c muted">visitas</div><div class="hr"></div>${miolo}</main></body></html>`,
+    `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>visitas · tô lisa</title><style>${CSS}</style></head><body><main><h1>tô lisa</h1><div class="c muted">visitas</div><div class="hr"></div>${miolo}</main>${js ? `<script nonce="${nonce}">${js.script}</script>` : ''}</body></html>`,
     {
       status,
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
         'Cache-Control': 'no-store',
-        'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'",
+        'Content-Security-Policy': csp,
         'Referrer-Policy': 'no-referrer',
         'X-Robots-Tag': 'noindex',
       },
@@ -184,7 +197,90 @@ ${meses ? `<div class="hr"></div><h2>*** por mês ***</h2>${meses}` : ''}
 <div class="hr"></div><div class="c muted" style="font-size:13px">aparelhos por dia: quem limpa o navegador conta de novo, e quem abre com ?naoconta não conta.</div>`;
 }
 
-/** @param {Request} req @param {{ FIREBASE_DB: string, VISITAS_SA?: string, VISITAS_CHAVE?: string }} env */
+/** os códigos das listas guardadas com a digital (o KV digital:<id> é { eventos: [{ code, me }] }). Poucas passkeys
+ * (é protótipo): lê até 40, pra não gastar o KV
+ * @param {{ list(o: { prefix: string, cursor?: string }): Promise<{ keys: { name: string }[], list_complete: boolean, cursor?: string }>, get(k: string): Promise<string|null> } | undefined} kv */
+export async function codigosDaDigital(kv) {
+  if (!kv) return [];
+  /** @type {Set<string>} */ const codigos = new Set();
+  let cursor,
+    lidas = 0;
+  do {
+    const r = await kv.list({ prefix: 'digital:', cursor });
+    for (const k of r.keys) {
+      if (lidas++ >= 40) break;
+      try {
+        const v = JSON.parse((await kv.get(k.name)) || 'null');
+        for (const e of (v && Array.isArray(v.eventos) && v.eventos) || [])
+          if (e && typeof e.code === 'string' && e.code && e.code.length <= 100) codigos.add(e.code);
+      } catch {}
+    }
+    cursor = r.list_complete ? undefined : r.cursor;
+  } while (cursor && lidas < 40);
+  return [...codigos];
+}
+
+const BUSCA = `<div class="hr"></div><h2>*** procurar evento ***</h2><form id="busca"><input id="buscaQ" placeholder="nome do evento ou de alguém" autocomplete="off" required><button>achar</button></form><p class="c muted" id="buscaSt"></p><div id="buscaRes"></div>`;
+
+// roda no navegador do dono. Tudo do banco entra por textContent: o banco é hostil
+const BUSCA_JS = `(() => {
+  const d = JSON.parse(document.getElementById('buscaDados').textContent);
+  const q = document.getElementById('buscaQ'), st = document.getElementById('buscaSt'), out = document.getElementById('buscaRes');
+  const norm = (t) => String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  const sha = async (s) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))]
+    .map((b) => b.toString(16).padStart(2, '0')).join('');
+  let salas = null, porHash = null;
+  async function baixa() {
+    if (salas) return;
+    st.textContent = 'baixando os eventos…';
+    const r = await fetch(d.banco + '/rooms.json?access_token=' + encodeURIComponent(d.token));
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    salas = (await r.json()) || {};
+    porHash = new Map();
+    for (const c of d.codigos) porHash.set(await sha(c), c);
+  }
+  // o código dos eventos do começo era o nome digitado, em minúsculas
+  async function codigoDe(id, s) {
+    if (porHash.has(id)) return porHash.get(id);
+    const n = typeof s.name === 'string' ? s.name.trim().toLowerCase() : '';
+    for (const c of new Set([n, n.replace(/\s+/g, '-'), norm(n), norm(n).replace(/\s+/g, '-')]))
+      if (c && (await sha(c)) === id) return c;
+    return null;
+  }
+  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+  document.getElementById('busca').onsubmit = async (ev) => {
+    ev.preventDefault();
+    out.textContent = '';
+    const t = norm(q.value);
+    if (!t) return;
+    try { await baixa(); } catch (err) { st.textContent = 'não consegui baixar os eventos (' + err.message + '). recarregue a página.'; return; }
+    const achou = [];
+    for (const [id, s] of Object.entries(salas)) {
+      if (!s || typeof s !== 'object') continue;
+      const gente = Array.isArray(s.people) ? s.people.filter((p) => p && typeof p.name === 'string').map((p) => p.name) : [];
+      if (norm(s.name || '').includes(t) || gente.some((g) => norm(g).includes(t))) achou.push({ id, s, gente });
+    }
+    achou.sort((a, b) => (+b.s.updatedAt || 0) - (+a.s.updatedAt || 0));
+    const total = Object.keys(salas).length;
+    st.textContent = achou.length ? achou.length + ' de ' + total + ' eventos' : 'nada entre ' + total + ' eventos';
+    for (const { id, s, gente } of achou.slice(0, 50)) {
+      const c = await codigoDe(id, s), n = Array.isArray(s.expenses) ? s.expenses.length : 0;
+      const card = el('div', 'ev'), topo = el('div', 'row');
+      topo.append(el('span', '', typeof s.name === 'string' && s.name ? s.name : '(sem nome)'), el('span', 'd'),
+        el('span', '', s.updatedAt ? new Date(+s.updatedAt).toLocaleDateString('pt-BR') : ''));
+      card.append(topo, el('div', 'muted', (gente.join(', ') || 'ninguém') + ' · ' + n + ' lançamento' + (n === 1 ? '' : 's')));
+      if (c) {
+        const a = el('a', '', 'abrir (' + c + ')');
+        a.href = 'https://tolisa.com.br/?evento=' + encodeURIComponent(c); a.target = '_blank'; a.rel = 'noopener';
+        const l = el('div'); l.append(a); card.append(l);
+      } else card.append(el('div', 'muted', 'sem o código: só abre pelo link de quem participou'));
+      out.append(card);
+    }
+    if (achou.length > 50) out.append(el('p', 'c muted', 'mostrando os 50 mais recentes'));
+  };
+})();`;
+
+/** @param {Request} req @param {{ FIREBASE_DB: string, VISITAS_SA?: string, VISITAS_CHAVE?: string, KV?: any }} env */
 export async function visitas(req, env) {
   const chave = env.VISITAS_CHAVE || '';
   let sa = null;
@@ -206,8 +302,7 @@ export async function visitas(req, env) {
           ? 'o VISITAS_SA não tem client_email e private_key: é o .json da chave da conta de serviço'
           : '',
   ].filter(Boolean);
-  if (falta.length)
-    return pagina(`<p class="c">a página ainda não foi ligada: ${falta.join('; ')}.</p>`, 503);
+  if (falta.length) return pagina(`<p class="c">a página ainda não foi ligada: ${falta.join('; ')}.</p>`, 503);
   if (req.method === 'GET') return pagina(FORM());
   if (req.method !== 'POST') return pagina(FORM(), 405);
   const t = await req.text();
@@ -220,7 +315,15 @@ export async function visitas(req, env) {
     const token = await tokenGoogle(sa);
     const r = await fetch(`${env.FIREBASE_DB}/visitas.json?access_token=${encodeURIComponent(token)}`);
     if (!r.ok) throw new Error(`banco: HTTP ${r.status}`);
-    return pagina(htmlResumo(resumo(await r.json())));
+    const dados = JSON.stringify({ banco: env.FIREBASE_DB, token, codigos: await codigosDaDigital(env.KV) }).replace(
+      /</g,
+      '\\u003c',
+    );
+    return pagina(
+      `${htmlResumo(resumo(await r.json()))}${BUSCA}<script type="application/json" id="buscaDados">${dados}</script>`,
+      200,
+      { script: BUSCA_JS, banco: env.FIREBASE_DB },
+    );
   } catch (err) {
     console.error(err);
     return pagina('<p class="err">não consegui ler o banco agora. tenta de novo daqui a pouco.</p>', 502);

@@ -37,6 +37,29 @@ const QUITA = { name: 'bailedamada', people: DADOS.people.filter(x => ['fernando
     { id: 'i2', desc: 'Janta', amount: 80, payer: 'julia', among: ['julia','lia'], at: H - 2*86400000 },
     { id: 'pg1', kind: 'payment', desc: 'Pagamento', amount: 100, payer: 'mengla', among: ['fernando'], at: H - 3600000 }] };
 
+/** semeia o aparelho com três eventos andando e `n` quitados antigos (roda no navegador, antes do app) */
+const SEMEIA = (n) => {
+  const dia = 86400000, agora = Date.now(), hex = (i) => i.toString(16).padStart(64, '0');
+  const ev = (i, nome, dias, quite) => {
+    const people = [{ id: 'eu', name: 'Fernando' }, { id: 'lia', name: 'Lia' }, { id: 'ju', name: 'Júlia' }];
+    const expenses = [{ id: 'g1', desc: 'Janta', amount: 90, payer: 'eu', among: ['eu', 'lia', 'ju'], at: agora - dias * dia }];
+    if (quite) expenses.push(
+      { id: 'p1', kind: 'payment', desc: 'Pagamento', amount: 30, payer: 'lia', among: ['eu'], at: agora - dias * dia },
+      { id: 'p2', kind: 'payment', desc: 'Pagamento', amount: 30, payer: 'ju', among: ['eu'], at: agora - dias * dia });
+    localStorage.setItem(`tolisa:${hex(i)}`, JSON.stringify({ code: `ev${i}aa1`, me: 'eu',
+      snapshot: { name: nome, people, expenses, updatedAt: agora - dias * dia } }));
+  };
+  try {
+    if (localStorage.getItem('tolisa')) return;
+    localStorage.setItem('tolisa', JSON.stringify({ visits: 5 }));
+    ev(1, 'bailedamada', 1, false); ev(2, 'churras da laje', 3, false); ev(3, 'praia', 9, false);
+    const nomes = ['aspirador de pó', 'mada 25', 'pizza', 'uber show', 'aniver da ju', 'feira', 'cinema', 'bolão', 'rodízio'];
+    nomes.slice(0, n).forEach((nome, k) => ev(10 + k, nome, 20 + k * 15, true));
+  } catch {}
+};
+const ABRE_ANTIGOS = async p => { await p.waitForTimeout(1200);
+  for (const espera of [2600, 2000, 2600]) { await p.click('details.antigos > summary'); await p.waitForTimeout(espera); } };
+
 const CENAS = {
   vaza: { nome: 'a nota subindo: o zap vaza quando o texto chega nele, o ✎ só depois', quem: 'Klinsmann', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(1200);
@@ -229,27 +252,14 @@ const CENAS = {
   gorro: { nome: 'o gorro do título dá uma pirueta a cada toque', quem: 'Lia', atrasoPix: 0, vel: 1,
     acao: async p => { await p.waitForTimeout(1200);
       for (const espera of [1800, 1800]) { await p.click('#titulo'); await p.waitForTimeout(espera); } } },
-  // a tela inicial com a lista: três eventos andando e quatro quitados antigos, recolhidos no fim; abre e fecha eles
-  antigos: { nome: 'os quitados antigos abrindo e fechando na lista de eventos', inicio: true, vel: 1, semeia: () => {
-      const dia = 86400000, agora = Date.now(), hex = (n) => n.toString(16).padStart(64, '0');
-      const ev = (i, nome, dias, quite) => {
-        const people = [{ id: 'eu', name: 'Fernando' }, { id: 'lia', name: 'Lia' }, { id: 'ju', name: 'Júlia' }];
-        const expenses = [{ id: 'g1', desc: 'Janta', amount: 90, payer: 'eu', among: ['eu', 'lia', 'ju'], at: agora - dias * dia }];
-        if (quite) expenses.push(
-          { id: 'p1', kind: 'payment', desc: 'Pagamento', amount: 30, payer: 'lia', among: ['eu'], at: agora - dias * dia },
-          { id: 'p2', kind: 'payment', desc: 'Pagamento', amount: 30, payer: 'ju', among: ['eu'], at: agora - dias * dia });
-        localStorage.setItem(`tolisa:${hex(i)}`, JSON.stringify({ code: `ev${i}aa1`, me: 'eu',
-          snapshot: { name: nome, people, expenses, updatedAt: agora - dias * dia } }));
-      };
-      try {
-        if (localStorage.getItem('tolisa')) return;
-        localStorage.setItem('tolisa', JSON.stringify({ visits: 5 }));
-        ev(1, 'bailedamada', 1, false); ev(2, 'churras da laje', 3, false); ev(3, 'praia', 9, false);
-        ev(4, 'aspirador de pó', 20, true); ev(5, 'mada 25', 40, true); ev(6, 'pizza', 60, true); ev(7, 'uber show', 90, true);
-      } catch {}
-    },
-    acao: async p => { await p.waitForTimeout(1200);
-      for (const espera of [2200, 1800, 2200]) { await p.click('details.antigos > summary'); await p.waitForTimeout(espera); } } },
+  // a tela inicial com a lista: três eventos andando e quitados antigos recolhidos no fim (4; 1 no antigos1, 9 no
+  // antigos9), abrindo e fechando. O `semeia` roda antes do app com o `semeiaArg` (quantos antigos)
+  antigos: { nome: 'os quitados antigos abrindo e fechando na lista de eventos', inicio: true, vel: 1, semeia: SEMEIA,
+    semeiaArg: 4, acao: ABRE_ANTIGOS },
+  antigos1: { nome: 'um quitado antigo só, abrindo e fechando', inicio: true, vel: 1, semeia: SEMEIA, semeiaArg: 1,
+    acao: ABRE_ANTIGOS },
+  antigos9: { nome: 'nove quitados antigos abrindo e fechando', inicio: true, vel: 1, semeia: SEMEIA, semeiaArg: 9,
+    acao: ABRE_ANTIGOS },
   // o banco demora: o carregando fica na tela e a nota sai da impressora quando a sala chega
   imprime: { nome: 'abrir o evento: o carregando e a nota saindo da impressora', quem: 'Lia', atrasoPix: 600, atrasoSala: 1800,
     vel: 1, acao: async p => { await p.waitForTimeout(3500); } },
@@ -259,8 +269,9 @@ const CENAS = {
 };
 
 async function video(opts = {}) {
-  const { cena = 'pix', largura = 390, altura = 844 } = opts;
+  const { cena = 'pix', largura = 390 } = opts;
   const c = CENAS[cena]; if (!c) throw new Error(`cena desconhecida: ${cena} (tem ${Object.keys(CENAS).join(', ')})`);
+  const altura = opts.altura ?? c.altura ?? 844;
   const vel = opts.vel ?? c.vel ?? 0.8;
   const dados = opts.dados || c.dados || DADOS;
   const saida = opts.saida || path.join(os.tmpdir(), `video-${cena}.webm`);
@@ -288,7 +299,7 @@ async function video(opts = {}) {
         if (eu) localStorage.setItem(`tolisa:${sala}`, JSON.stringify({ me: eu.id })); } catch {}
     }, [sala, dados.name, c.quem, dados.people]);
     await poeTema(p, opts.tema);
-    if (c.semeia) await p.addInitScript(c.semeia);
+    if (c.semeia) await p.addInitScript(c.semeia, c.semeiaArg);
     if (opts.js) await p.addInitScript(opts.js);
     const cdp = await ctx.newCDPSession(p);
     await cdp.send('Animation.enable'); await cdp.send('Animation.setPlaybackRate', { playbackRate: vel });

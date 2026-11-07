@@ -191,8 +191,23 @@ export async function visitas(req, env) {
   try {
     sa = JSON.parse(env.VISITAS_SA || 'null');
   } catch {}
-  if (chave.length < CHAVE_MIN || !sa?.client_email || !sa?.private_key)
-    return pagina('<p class="c">a página ainda não foi ligada: falta o VISITAS_CHAVE ou o VISITAS_SA no Worker.</p>', 503);
+  // diz o que falta sem mostrar nada do valor: o dono confere o secret no GitHub e roda o "Sobe a API" de novo
+  const falta = [
+    !chave
+      ? 'falta o VISITAS_CHAVE'
+      : chave.length < CHAVE_MIN
+        ? `o VISITAS_CHAVE tem ${chave.length} letras, e precisa de ${CHAVE_MIN} ou mais`
+        : '',
+    !env.VISITAS_SA
+      ? 'falta o VISITAS_SA'
+      : !sa
+        ? 'o VISITAS_SA não é um JSON: cole o arquivo .json da chave inteiro, de { a }'
+        : !sa.client_email || !sa.private_key
+          ? 'o VISITAS_SA não tem client_email e private_key: é o .json da chave da conta de serviço'
+          : '',
+  ].filter(Boolean);
+  if (falta.length)
+    return pagina(`<p class="c">a página ainda não foi ligada: ${falta.join('; ')}.</p>`, 503);
   if (req.method === 'GET') return pagina(FORM());
   if (req.method !== 'POST') return pagina(FORM(), 405);
   const t = await req.text();

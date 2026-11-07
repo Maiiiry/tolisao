@@ -79,9 +79,16 @@ test('chave errada não lê o banco', async () => {
 });
 
 test('sem a chave ou a conta de serviço no Worker, a página fica desligada', async () => {
-  for (const falta of [{ VISITAS_CHAVE: '' }, { VISITAS_CHAVE: 'curta' }, { VISITAS_SA: '' }]) {
+  for (const [falta, diz] of [
+    [{ VISITAS_CHAVE: '' }, /falta o VISITAS_CHAVE/],
+    [{ VISITAS_CHAVE: 'curta' }, /tem 5 letras/],
+    [{ VISITAS_SA: '' }, /falta o VISITAS_SA/],
+    [{ VISITAS_SA: 'não é json' }, /não é um JSON/],
+    [{ VISITAS_SA: '{"type":"service_account"}' }, /não tem client_email/],
+  ]) {
     const r = await api.fetch(new Request(`${BASE}/visitas`), { ...env, ...falta });
     assert.equal(r.status, 503);
+    assert.match(await r.text(), diz);
   }
 });
 

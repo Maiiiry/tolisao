@@ -20,4 +20,4 @@ binding = "KV"
 id = "__KV_ID__"
 
 # secrets (wrangler secret, nunca aqui): VAPID_PRIVATE (JWK P-256 em JSON) e VAPID_PUBLIC (base64url);
-# VISITAS_SA (JSON da conta de serviço só de leitura) e VISITAS_CHAVE, da página /visitas, que o servidor.yml copia dos secrets do repo
+# VISITAS_SA (JSON da conta de serviço só de leitura) e VISITAS_CHAVE, do painel do dono (POST /admin), que o servidor.yml copia dos secrets do repo

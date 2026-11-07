@@ -75,8 +75,8 @@ jobs:
           if [ -z "$URL" ]; then echo "não achei a URL na saída do deploy"; exit 1; fi
           echo "URL=$URL" >> "$GITHUB_ENV"
           echo "### API no ar: $URL" >> "$GITHUB_STEP_SUMMARY"
-      - name: Liga a página das visitas
-        # o /visitas lê o banco com VISITAS_SA, uma conta de serviço SÓ DE LEITURA (papel "Firebase Realtime Database
+      - name: Liga o painel do dono
+        # o POST /admin (tolisa.com.br/admin) lê o banco com VISITAS_SA, uma conta de serviço SÓ DE LEITURA (papel "Firebase Realtime Database
         # Viewer"; nunca a FIREBASE_SA de admin, que publica as regras) e abre com a chave VISITAS_CHAVE (20+ letras).
         # sem os dois secrets, a página fica desligada e o deploy segue
         env:
@@ -84,14 +84,14 @@ jobs:
           VISITAS_CHAVE: ${{ secrets.VISITAS_CHAVE }}
         run: |
           if [ -z "$VISITAS_CHAVE" ] || [ -z "$VISITAS_SA" ]; then
-            echo "sem VISITAS_CHAVE ou VISITAS_SA: o /visitas fica desligado"; exit 0
+            echo "sem VISITAS_CHAVE ou VISITAS_SA: o painel do dono fica desligado"; exit 0
           fi
           umask 077
           F="$RUNNER_TEMP/visitas.json"
           node -e 'const e = process.env; require("fs").writeFileSync(process.argv[1], JSON.stringify({ VISITAS_SA: e.VISITAS_SA, VISITAS_CHAVE: e.VISITAS_CHAVE }))' "$F"
           npx wrangler secret bulk "$F"
           rm -f "$F"
-          echo "### visitas: $URL/visitas" >> "$GITHUB_STEP_SUMMARY"
+          echo "### painel do dono ligado: https://tolisa.com.br/admin/" >> "$GITHUB_STEP_SUMMARY"
       - name: Confere o /chave
         run: |
           for i in $(seq 1 6); do

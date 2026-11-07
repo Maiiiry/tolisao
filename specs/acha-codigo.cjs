@@ -1,4 +1,4 @@
-// acha o código perdido de um evento a partir do id da sala (o sha-256 do código, que a busca do /visitas mostra) e do
+// acha o código perdido de um evento a partir do id da sala (o sha-256 do código, que a busca do tolisa.com.br/admin mostra) e do
 // nome dele. Não é teste. Tenta, em todos os núcleos, os dois formatos de código com 6 sorteados (36⁶, uns 2 bilhões):
 //   "<nome>-k7f3q9"  os eventos de 26/set a 1º/nov (o nome em minúsculas, como foi digitado, e um final sorteado)
 //   "k7f3q9"          os de depois de 1º/nov

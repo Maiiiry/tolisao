@@ -672,8 +672,25 @@ button.ico.ok:active{transform:translate(2px,2px);box-shadow:none}
 /* os quites antigos, recolhidos no fim como os itens apagados */
 .evs details.antigos>summary{display:block;list-style:none;cursor:pointer;text-align:center;text-transform:none;font-size:17px;color:var(--muted);margin:10px 0 2px}
 .evs details.antigos>summary::-webkit-details-marker{display:none}
-.evs details.antigos>summary:before{content:"▸ "}
-.evs details.antigos[open]>summary:before{content:"▾ "}
+/* abrir é um leque: a lista estica e os quitados saem empilhados de trás do "quitados antigos", cada um descendo
+   as linhas que o separam dele; fechar encolhe de volta. Sem ::details-content (Safari velho) abre seco, como antes.
+   As outras opções (gaveta, cascata) ficaram em docs/animacoes.md */
+.evs details.antigos{interpolate-size:allow-keywords}
+.evs details.antigos::details-content{height:0;overflow:clip;transition:height .35s cubic-bezier(.3,.6,.4,1),content-visibility .35s allow-discrete}
+.evs details.antigos[open]::details-content{height:auto}
+.evs details.antigos>summary:before{content:"▸";display:inline-block;margin-right:.4em;transition:transform .25s ease}
+.evs details.antigos[open]>summary:before{transform:rotate(90deg)}
+@keyframes leque{from{opacity:0;transform:translateY(calc(var(--i) * -100%)) scale(.96)}to{opacity:1;transform:none}}
+.evs details.antigos>.ev{position:relative;background:var(--paper)}
+.evs details.antigos[open]>.ev{animation:leque .45s cubic-bezier(.2,.8,.3,1) both}
+.evs details.antigos>.ev:nth-of-type(1){--i:1;z-index:8}
+.evs details.antigos>.ev:nth-of-type(2){--i:2;z-index:7}
+.evs details.antigos>.ev:nth-of-type(3){--i:3;z-index:6}
+.evs details.antigos>.ev:nth-of-type(4){--i:4;z-index:5}
+.evs details.antigos>.ev:nth-of-type(5){--i:5;z-index:4}
+.evs details.antigos>.ev:nth-of-type(6){--i:6;z-index:3}
+.evs details.antigos>.ev:nth-of-type(n+7){--i:7;z-index:2}
+@media (prefers-reduced-motion:reduce){.evs details.antigos::details-content,.evs details.antigos>summary:before{transition:none}.evs details.antigos[open]>.ev{animation:none}}
 /* o quem vai: cada pessoa uma bolinha na cor dela, e a casinha tracejada do fim espera a próxima */
 h2.pergunta{text-transform:none;letter-spacing:0;font-size:30px;line-height:1.1;text-align:center;margin:0 0 4px}
 .pessoa{display:flex;align-items:center;gap:10px;margin:8px 0}

@@ -3521,6 +3521,8 @@
       }
       setStatus('Offline · ' + SEM_REDE, true);
     }
+    // a nota sai da impressora a partir da altura do carregando (o --alto do style.css)
+    $('#app').style.setProperty('--alto', `${$('#app').offsetHeight}px`);
     $('#app').classList.remove('loading');
     // o link veio com &quem=: o aparelho que ainda não é ninguém no evento já entra como essa pessoa
     const quem = quemDoLink;

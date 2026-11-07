@@ -2792,8 +2792,11 @@
       }
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><span class="campoEx"><input id="gateCode" placeholder="ex: ${natal() ? 'amigo secreto, ceia' : 'praia, churras'}" required autocapitalize="none"><span class="exemplo" aria-hidden="true"></span></span><button class="small">${botao}</button></form>
       <p id="gateErr" class="status err" style="margin:0"></p><div class="c"><button id="instalarGate" class="ico amb hidden">${BAIXAR_SVG} instalar</button></div>${linhaDigital(evs.length > 0)}${
-        aberto ? `<div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>` : ''
-      }`,
+        // quem testa tudo (o dono, com o ?testes) chega no painel dele pela tela inicial
+        emTeste() && !aberto
+          ? '<div class="c digital"><a class="link" id="painelDono" href="admin/">painel do dono</a></div>'
+          : ''
+      }${aberto ? `<div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>` : ''}`,
       !aberto,
     );
     mostraInstalar();

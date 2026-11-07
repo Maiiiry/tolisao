@@ -82,3 +82,11 @@ const luzDoPapel = (p) => p.locator('#app').evaluate(el => {
 });
 Then('o recibo é claro', async ({ mundo }) => { await expect.poll(() => luzDoPapel(mundo.p)).toBeGreaterThan(0.6); });
 Then('o recibo é escuro', async ({ mundo }) => { await expect.poll(() => luzDoPapel(mundo.p)).toBeLessThan(0.2); });
+// o painel do dono (admin/): o atalho mora na tela inicial de quem testa tudo
+Then('a tela inicial tem o caminho pro painel do dono', async ({ mundo }) => {
+  await expect(mundo.p.locator('#overlayBox a[href="admin/"]')).toBeVisible();
+});
+Then('a tela inicial não tem o caminho pro painel do dono', async ({ mundo }) => {
+  await expect(mundo.p.locator('#gateCode')).toBeVisible();
+  await expect(mundo.p.locator('#overlayBox a[href="admin/"]')).toHaveCount(0);
+});

@@ -3471,6 +3471,13 @@
       else showSetup();
     }
   }
+  /** tira o carregando: a nota sai da impressora a partir da altura dele (o --alto do style.css). Uma vez por abrir */
+  function imprime() {
+    const app = $('#app');
+    if (!app.classList.contains('loading')) return;
+    app.style.setProperty('--alto', `${app.offsetHeight}px`);
+    app.classList.remove('loading');
+  }
   async function openGroup(code, id) {
     // o código fica no endereço: copiar a URL da barra já manda o evento
     // (sem o &quem=: a barra copiada não pode mandar o próximo entrar como outra pessoa)
@@ -3499,13 +3506,18 @@
     showGone = false;
     $('#app').classList.add('loading');
     $('#app').classList.remove('nospin');
-    state = cacheLoad();
-    if (state) render();
-    closeOverlay();
-    setStatus('Carregando…');
     pixKeys = {};
     pixReady = false;
     rearmaAnims();
+    // o evento que o aparelho já tem aparece na hora, e o banco atualiza por cima quando chegar: esperar por ele
+    // encolhia a nota pro carregando a cada abrir, e o fundo escuro piscava na tela
+    state = cacheLoad();
+    if (state) {
+      render();
+      imprime();
+    }
+    closeOverlay();
+    setStatus('Carregando…');
     try {
       const remote = await apiGet(groupId);
       state = merge(state, remote);
@@ -3525,9 +3537,7 @@
       }
       setStatus('Offline · ' + SEM_REDE, true);
     }
-    // a nota sai da impressora a partir da altura do carregando (o --alto do style.css)
-    $('#app').style.setProperty('--alto', `${$('#app').offsetHeight}px`);
-    $('#app').classList.remove('loading');
+    imprime();
     // o link veio com &quem=: o aparelho que ainda não é ninguém no evento já entra como essa pessoa
     const quem = quemDoLink;
     quemDoLink = null;

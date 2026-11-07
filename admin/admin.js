@@ -58,7 +58,10 @@
     r.append(el('span', '', l), el('span', 'd'), el('span', '', v));
     return r;
   };
-  /** @param {any} r o resumo da API */
+  /** os dias já na lista, do mais novo pro mais velho: os 15 da API e os que o "ver mais" trouxe
+   * @type {{ dia: string, n: number }[]} */
+  let dias = [];
+  /** @param {any} r o resumo da API (os últimos 15 dias) */
   function visitas(r) {
     const box = $('#visitas');
     box.textContent = '';
@@ -79,26 +82,14 @@
       el('div', 'hr'),
       linha('hoje', r.hoje),
       linha('ontem', r.ontem),
-      linha('últimos 30 dias', r.mes),
-      linha('desde o começo', r.total),
+      linha('últimos 15 dias', r.quinzena),
     );
     if (r.melhor) box.append(linha(`melhor dia (${fmt(r.melhor.dia)})`, r.melhor.n));
-    if (r.desde) box.append(el('div', 'c muted', `contando desde ${fmt(r.desde)}/${r.desde.slice(0, 4)}`));
-    box.append(el('div', 'hr'), el('h2', '', '*** dia a dia ***'));
-    const maior = Math.max(1, ...r.ultimos.map((/** @type {any} */ u) => u.n));
-    for (const u of r.ultimos) {
-      const s = semana(u.dia),
-        d = el('div', `dia${u.n ? '' : ' zero'}${s === 'sáb' || s === 'dom' ? ' fds' : ''}`),
-        b = el('span', 'b');
-      b.style.width = `${Math.round((u.n / maior) * 100)}%`;
-      d.append(el('span', '', fmt(u.dia)), el('span', '', s), b, el('span', 'n', u.n));
-      box.append(d);
-    }
-    const meses = Object.entries(r.meses).reverse();
-    if (meses.length) {
-      box.append(el('div', 'hr'), el('h2', '', '*** por mês ***'));
-      for (const [m, n] of meses) box.append(linha(`${m.slice(5, 7)}/${m.slice(0, 4)}`, /** @type {number} */ (n)));
-    }
+    const mais = /** @type {HTMLButtonElement} */ (el('button', 'mais', '▾ ver mais 15 dias'));
+    box.append(el('div', 'hr'), el('h2', '', '*** dia a dia ***'), el('div', 'dias'), mais);
+    mais.onclick = verMais;
+    dias = r.ultimos.slice();
+    desenhaDias();
     box.append(
       el('div', 'hr'),
       el(
@@ -107,6 +98,65 @@
         'aparelhos por dia: quem limpa o navegador conta de novo, e quem abre com ?naoconta não conta.',
       ),
     );
+  }
+  /** a lista inteira de novo: a barra é proporcional ao maior dia do que já está na lista */
+  function desenhaDias() {
+    const lista = $('#visitas .dias'),
+      maior = Math.max(1, ...dias.map((u) => u.n));
+    lista.textContent = '';
+    for (const u of dias) {
+      const s = semana(u.dia),
+        d = el('div', `dia${u.n ? '' : ' zero'}${s === 'sáb' || s === 'dom' ? ' fds' : ''}`),
+        b = el('span', 'b');
+      b.style.width = `${Math.round((u.n / maior) * 100)}%`;
+      d.append(el('span', '', fmt(u.dia)), el('span', '', s), b, el('span', 'n', u.n));
+      lista.append(d);
+    }
+  }
+  /** o dia (AAAA-MM-DD) `n` dias antes de `dia`, no calendário */
+  const antes = (/** @type {string} */ dia, /** @type {number} */ n) =>
+    new Date(Date.parse(`${dia}T12:00:00Z`) - n * 864e5).toISOString().slice(0, 10);
+  /** mais 15 dias pra trás, direto do banco com o token: só a janela desce (o lixo de fora, como dia do ano 2000, não).
+   * Uma janela inteira vazia é o começo da contagem: o botão some */
+  async function verMais() {
+    if (!sessao) return;
+    const btn = /** @type {HTMLButtonElement} */ ($('#visitas .mais')),
+      ate = antes(dias[dias.length - 1].dia, 1),
+      de = antes(ate, 14);
+    btn.disabled = true;
+    btn.textContent = 'carregando…';
+    try {
+      const q = (/** @type {string} */ v) => encodeURIComponent(`"${v}"`);
+      const r = await fetch(
+        `${sessao.banco}/visitas.json?orderBy=${encodeURIComponent('"$key"')}&startAt=${q(de)}&endAt=${q(ate)}&access_token=${encodeURIComponent(sessao.token)}`,
+      );
+      if (r.status === 401 || r.status === 403)
+        throw new Error('o acesso venceu (dura uma hora): recarregue e entre de novo');
+      if (!r.ok) throw new Error(`o banco respondeu ${r.status}`);
+      const cru = (await r.json()) || {},
+        novos = Array.from({ length: 15 }, (_, i) => {
+          const dia = antes(ate, i),
+            n = cru[dia];
+          return { dia, n: Number.isInteger(n) && n > 0 ? n : 0 };
+        });
+      dias = dias.concat(novos);
+      desenhaDias();
+      if (novos.every((u) => !u.n)) {
+        btn.replaceWith(
+          el(
+            'p',
+            'c muted nota',
+            `nada de ${fmt(novos[14].dia)} a ${fmt(novos[0].dia)}: a contagem começou depois disso`,
+          ),
+        );
+        return;
+      }
+      btn.textContent = '▾ ver mais 15 dias';
+    } catch (e) {
+      btn.textContent = `${/** @type {Error} */ (e).message} · tentar de novo`;
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   // ---------- a busca ----------

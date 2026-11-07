@@ -42,7 +42,7 @@ beforeEach(async () => {
     pedidos.push({ url: String(url), init });
     if (String(url).startsWith('https://oauth2.googleapis.com/token'))
       return new Response(JSON.stringify({ access_token: 'tok-google', expires_in: 3600 }));
-    if (String(url).startsWith('https://banco.exemplo.com/visitas.json')) return new Response(JSON.stringify(banco));
+    if (String(url).startsWith('https://banco.exemplo.com/visitas.json?')) return new Response(JSON.stringify(banco));
     return new Response('?', { status: 404 });
   };
 });
@@ -73,13 +73,17 @@ test('com a chave certa devolve o resumo, o token da conta de serviço e os cód
   assert.equal(r.headers.get('Access-Control-Allow-Origin'), ORIGEM);
   assert.equal(r.headers.get('Cache-Control'), 'no-store');
   const d = await r.json();
-  assert.equal(d.resumo.total, 6);
+  assert.equal(d.resumo.ultimos.length, 15);
   assert.equal(d.banco, 'https://banco.exemplo.com');
   assert.equal(d.token, 'tok-google');
   assert.deepEqual(d.codigos, ['aspirador-k7f3q9']);
   const token = pedidos.find((p) => p.url.startsWith('https://oauth2.googleapis.com/token'));
   assert.equal(new URLSearchParams(token.init.body).get('assertion').split('.').length, 3);
-  assert.ok(pedidos.some((p) => p.url === 'https://banco.exemplo.com/visitas.json?access_token=tok-google'));
+  const lida = new URL(pedidos.find((p) => p.url.includes('/visitas.json')).url);
+  assert.equal(lida.searchParams.get('orderBy'), '"$key"');
+  assert.match(lida.searchParams.get('startAt'), /^"\d{4}-\d{2}-\d{2}"$/);
+  assert.match(lida.searchParams.get('endAt'), /^"\d{4}-\d{2}-\d{2}"$/);
+  assert.equal(lida.searchParams.get('access_token'), 'tok-google');
 });
 
 test('chave errada não lê o banco nem devolve token', async () => {
@@ -115,29 +119,31 @@ test('o endereço velho da página manda pro painel no site', async () => {
   assert.equal(r.headers.get('Location'), 'https://tolisa.com.br/admin/');
 });
 
-test('o resumo conta semana, mês e melhor dia, e ignora o que não é visita', () => {
+test('o resumo é dos últimos 15 dias: semana, a anterior e o melhor dia, sem o lixo de fora da janela', () => {
   const agora = Date.parse('2026-11-07T15:00:00Z'); // meio-dia em São Paulo
   const r = resumo(
     {
       '2026-11-07': 3,
       '2026-11-01': 5,
       '2026-10-30': 2, // semana anterior
-      '2026-09-01': 10,
-      lixo: 99,
+      '2026-10-24': 7, // o 15º dia, o último da janela
+      '2026-10-23': 9, // fora dos 15 dias
+      '2000-01-01': 999, // lixo
       '2026-11-02': -4,
       '2026-11-03': 'x',
     },
     agora,
   );
   assert.equal(r.hoje, 3);
+  assert.equal(r.ontem, 0);
   assert.equal(r.semana, 8);
   assert.equal(r.semanaAntes, 2);
-  assert.equal(r.mes, 10);
-  assert.equal(r.total, 20);
-  assert.deepEqual(r.melhor, { dia: '2026-09-01', n: 10 });
-  assert.equal(r.desde, '2026-09-01');
-  assert.deepEqual(r.meses, { '2026-09': 10, '2026-10': 2, '2026-11': 8 });
-  assert.equal(r.ultimos[0].dia, '2026-11-07');
+  assert.equal(r.quinzena, 17);
+  assert.deepEqual(r.melhor, { dia: '2026-10-24', n: 7 });
+  assert.equal(r.ultimos.length, 15);
+  assert.deepEqual(r.ultimos[0], { dia: '2026-11-07', n: 3 });
+  assert.equal(r.ultimos[14].dia, '2026-10-24');
+  assert.equal(r.ultimos[14].n, 7);
 });
 
 test('o dia vira à meia-noite de São Paulo, não de Greenwich', () => {

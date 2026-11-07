@@ -16,7 +16,8 @@ import { b64url, deB64url } from './vapid.js';
 
 const texto = new TextEncoder();
 const CHAVE_MIN = 20; // chave curta se adivinha testando: menos que isso a página nem abre
-const DIAS_NA_LISTA = 45;
+// o painel só lê os últimos 15 dias (dá a semana e a anterior). O resto o admin.js pede de 15 em 15, no "ver mais"
+export const DIAS = 15;
 const DIA = 86400 * 1000;
 const BR = 3 * 3600 * 1000; // o dia das visitas é o de São Paulo, igual ao hojeBR do app.js
 
@@ -77,38 +78,33 @@ async function igual(a, b) {
 /** o dia (AAAA-MM-DD) de São Paulo, `n` dias antes de `agora` */
 const diaBR = (agora, n = 0) => new Date(agora - BR - n * DIA).toISOString().slice(0, 10);
 
-/** o resumo das visitas: só dias no formato certo e números inteiros (o banco é hostil)
+/** a consulta do visitas.json só dos dias de `de` a `ate` (AAAA-MM-DD): o $key ordena sem índice, e o lixo de fora
+ * da janela (dia do ano 2000, dia do futuro) nem desce @param {string} de @param {string} ate */
+export const janela = (de, ate) =>
+  `orderBy=${encodeURIComponent('"$key"')}&startAt=${encodeURIComponent(`"${de}"`)}&endAt=${encodeURIComponent(`"${ate}"`)}`;
+
+/** o resumo dos últimos DIAS dias: só dias da janela e números inteiros (o banco é hostil)
  * @param {any} cru o que veio do visitas.json @param {number} agora */
 export function resumo(cru, agora = Date.now()) {
-  /** @type {Record<string, number>} */
-  const dias = {};
-  if (cru && typeof cru === 'object')
-    for (const [d, n] of Object.entries(cru))
-      if (/^\d{4}-\d{2}-\d{2}$/.test(d) && Number.isInteger(n) && n > 0) dias[d] = n;
-  const soma = (/** @type {number} */ de, /** @type {number} */ ate) => {
-    let t = 0;
-    for (let i = de; i < ate; i++) t += dias[diaBR(agora, i)] || 0;
-    return t;
-  };
-  const ordem = Object.keys(dias).sort();
-  /** @type {Record<string, number>} */
-  const meses = {};
-  for (const d of ordem) meses[d.slice(0, 7)] = (meses[d.slice(0, 7)] || 0) + dias[d];
-  const melhor = ordem.reduce((m, d) => (!m || dias[d] > dias[m] ? d : m), '');
+  const ultimos = Array.from({ length: DIAS }, (_, i) => {
+    const d = diaBR(agora, i),
+      n = cru && typeof cru === 'object' ? cru[d] : 0;
+    return { dia: d, n: Number.isInteger(n) && n > 0 ? n : 0 };
+  });
+  const soma = (/** @type {number} */ de, /** @type {number} */ ate) =>
+    ultimos.slice(de, ate).reduce((t, u) => t + u.n, 0);
+  const melhor = ultimos.reduce(
+    (m, u) => (u.n > (m ? m.n : 0) ? u : m),
+    /** @type {{ dia: string, n: number } | null} */ (null),
+  );
   return {
-    hoje: dias[diaBR(agora)] || 0,
-    ontem: dias[diaBR(agora, 1)] || 0,
+    hoje: ultimos[0].n,
+    ontem: ultimos[1].n,
     semana: soma(0, 7),
     semanaAntes: soma(7, 14),
-    mes: soma(0, 30),
-    total: ordem.reduce((t, d) => t + dias[d], 0),
-    desde: ordem[0] || null,
-    melhor: melhor ? { dia: melhor, n: dias[melhor] } : null,
-    meses,
-    ultimos: Array.from({ length: DIAS_NA_LISTA }, (_, i) => {
-      const d = diaBR(agora, i);
-      return { dia: d, n: dias[d] || 0 };
-    }),
+    quinzena: soma(0, DIAS),
+    melhor,
+    ultimos,
   };
 }
 
@@ -173,10 +169,13 @@ export async function admin(b, env, resp) {
   }
   try {
     const token = await tokenGoogle(sa);
-    const r = await fetch(`${env.FIREBASE_DB}/visitas.json?access_token=${encodeURIComponent(token)}`);
+    const agora = Date.now();
+    const r = await fetch(
+      `${env.FIREBASE_DB}/visitas.json?${janela(diaBR(agora, DIAS - 1), diaBR(agora))}&access_token=${encodeURIComponent(token)}`,
+    );
     if (!r.ok) throw new Error(`banco: HTTP ${r.status}`);
     return resp(200, {
-      resumo: resumo(await r.json()),
+      resumo: resumo(await r.json(), agora),
       banco: env.FIREBASE_DB,
       token,
       codigos: await codigosDaDigital(env.KV),

@@ -587,7 +587,21 @@ button.edita{border-color:transparent;background:transparent;text-decoration:und
 #boot{display:none;margin:14px 0 2px} #boot .spin{width:22px;height:22px;border-width:3px}
 #app.loading>*:not(h1):not(#boot):not(.cordao){display:none} #app.loading #boot{display:block} #app.loading.nospin{display:none} #app.loading~.fab{display:none}
 @keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-#app:not(.loading)>*:not(.stain){animation:fadein .35s ease both}
+/* a nota sai da impressora: o papel cresce a partir do carregando (--alto, a altura dele, medida no app.js) e cada
+   bloco cai no lugar, um depois do outro, com um tranquinho. O corte não fica (backwards): a ficha voa pra fora do papel */
+@keyframes imprime{from{clip-path:inset(-30px -40px calc(100% - var(--alto,150px)) -40px)}to{clip-path:inset(-30px -40px -40px -40px)}}
+@keyframes linha{0%{opacity:0;transform:translateY(-10px)}70%{opacity:1;transform:translateY(1.5px)}100%{opacity:1;transform:none}}
+#app:not(.loading){animation:imprime .8s cubic-bezier(.3,.6,.4,1) backwards}
+#app:not(.loading)>:is(#eventLine,.hr,#chegada,#mine,#itemsSec,#settleHead,#settle,#fecho,#bars,#status,.tema){animation:linha .3s ease-out both}
+#app:not(.loading)>#eventLine+.hr{animation-delay:40ms}
+#app:not(.loading)>:is(#chegada,#mine){animation-delay:80ms}
+#app:not(.loading)>#itemsSec{animation-delay:190ms}
+#app:not(.loading)>#settleHead{animation-delay:280ms}
+#app:not(.loading)>#settle{animation-delay:330ms}
+#app:not(.loading)>#settleHr{animation-delay:470ms}
+#app:not(.loading)>#fecho{animation-delay:520ms}
+#app:not(.loading)>:is(#bars,#status,.tema){animation-delay:580ms}
+@media (prefers-reduced-motion:reduce){#app:not(.loading),#app:not(.loading)>:is(#eventLine,.hr,#chegada,#mine,#itemsSec,#settleHead,#settle,#fecho,#bars,#status,.tema){animation:none}}
 /* a passagem pro quite (o viraQuite): de cima pra baixo, a caixa, os itens, o título e as linhas. O que é refeito a cada
    sync conta do --vq, o tempo que já passou */
 #app.vaiVirar #mineRows .quite,#app.vaiVirar #itemsSec,#app.vaiVirar #settleHead,#app.vaiVirar #settle{opacity:0}

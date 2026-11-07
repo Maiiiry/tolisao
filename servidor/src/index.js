@@ -7,6 +7,7 @@
 //   POST /avisa      {sala, id}                → relê a sala no Firebase e avisa quem recebeu (ou quem foi perdoado),
 //                                                ou, no gasto novo, quem divide e quem pagou
 //   POST /digital/…                             → entrar com a digital (passkey, #168): ver digital.js
+//   GET|POST /visitas                          → a página do dono com o resumo das visitas, atrás de chave: ver visitas.js
 //   cron todo dia, 19h de Brasília             → a diva cobra sozinha: lembra quem tem a receber em evento parado,
 //                                                e no mêsversário da dívida (15 dias, depois todo mês) avisa quem recebe
 //
@@ -20,6 +21,7 @@
 
 import { empurra } from './vapid.js';
 import * as digital from './digital.js';
+import { visitas } from './visitas.js';
 
 const SALA = /^[0-9a-f]{64}$/;
 const ID = /^[a-z0-9]{1,32}$/;
@@ -37,7 +39,7 @@ const NIVER_PRAZO = 7; // dias: o cron não lê toda sala todo dia, então o ani
 const FETCH_POR_VEZ = 45;
 
 /** @typedef {{ get(k: string): Promise<string|null>, put(k: string, v: string, o?: { expirationTtl?: number, metadata?: any }): Promise<void>, delete(k: string): Promise<void>, list(o: { prefix: string, cursor?: string }): Promise<{ keys: { name: string, metadata?: any }[], list_complete: boolean, cursor?: string }> }} KV */
-/** @typedef {{ KV: KV, FIREBASE_DB: string, VAPID_PUBLIC: string, VAPID_PRIVATE: string, VAPID_SUB?: string, DIGITAL_ORIGENS?: string }} Env */
+/** @typedef {{ KV: KV, FIREBASE_DB: string, VAPID_PUBLIC: string, VAPID_PRIVATE: string, VAPID_SUB?: string, DIGITAL_ORIGENS?: string, VISITAS_SA?: string, VISITAS_CHAVE?: string }} Env */
 
 /** @param {string | null} origem */
 export function origemOk(origem) {
@@ -360,6 +362,8 @@ export default {
   },
   /** @param {Request} req @param {Env} env */
   async fetch(req, env) {
+    // a página das visitas é do próprio Worker (o formulário dela posta com a origem dele), não do site: vem antes do CORS
+    if (new URL(req.url).pathname === '/visitas') return visitas(req, env);
     const o = req.headers.get('Origin');
     // navegador de outro site: nem responde. sem Origin (curl, smoke test) passa: CORS não é segurança
     if (o && !origemOk(o)) return new Response(null, { status: 403 });

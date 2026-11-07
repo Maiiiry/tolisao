@@ -127,3 +127,34 @@ test('o dia vira à meia-noite de São Paulo, não de Greenwich', () => {
   const r = resumo({ '2026-11-06': 1, '2026-11-07': 9 }, Date.parse('2026-11-07T02:00:00Z')); // 23h do dia 6 em SP
   assert.equal(r.hoje, 1);
 });
+
+test('com a chave certa a página traz a busca, com o script liberado só pelo nonce e os códigos da digital', async () => {
+  const kv = new Map([
+    ['digital:p1', JSON.stringify({ eventos: [{ code: 'aspirador-k7f3q9', me: 'eu' }, { code: 'x'.repeat(200) }] })],
+    ['digital:p2', 'lixo'],
+    ['outra:coisa', '{}'],
+  ]);
+  env.KV = {
+    async list({ prefix }) {
+      return { keys: [...kv.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })), list_complete: true };
+    },
+    async get(k) {
+      return kv.get(k) ?? null;
+    },
+  };
+  const r = await posta(CHAVE);
+  const h = await r.text();
+  const csp = r.headers.get('Content-Security-Policy');
+  const nonce = csp.match(/'nonce-([\w-]+)'/)[1];
+  assert.match(h, new RegExp(`<script nonce="${nonce}">`));
+  assert.match(csp, /connect-src https:\/\/banco\.exemplo\.com;/);
+  assert.match(h, /id="busca"/);
+  const dados = JSON.parse(h.match(/<script type="application\/json" id="buscaDados">(.*?)<\/script>/)[1]);
+  assert.deepEqual(dados, { banco: 'https://banco.exemplo.com', token: 'tok-google', codigos: ['aspirador-k7f3q9'] });
+});
+
+test('sem a chave a página não leva token nem script', async () => {
+  const r = await api.fetch(new Request(`${BASE}/visitas`), env);
+  assert.doesNotMatch(r.headers.get('Content-Security-Policy'), /script-src/);
+  assert.doesNotMatch(await r.text(), /buscaDados|tok-google/);
+});

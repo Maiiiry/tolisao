@@ -145,7 +145,7 @@ button{background:var(--ink);color:var(--paper);cursor:pointer}
 .err{color:#c0392b;text-align:center}
 #busca{flex-direction:row}#busca input{flex:1;min-width:0}
 .ev{margin:12px 0;padding-bottom:10px;border-bottom:1px dotted var(--ink2)}.ev .muted{font-size:14px}
-.ev a{color:var(--amber)}`;
+.ev a{color:var(--amber)}.ev .id{font-size:12px;word-break:break-all;user-select:all}`;
 
 /** a página inteira. Com `script`, ele entra com nonce e a página pode falar com o banco
  * @param {string} miolo @param {{ script: string, banco: string } | null} [js] */
@@ -273,7 +273,13 @@ const BUSCA_JS = `(() => {
         const a = el('a', '', 'abrir (' + c + ')');
         a.href = 'https://tolisa.com.br/?evento=' + encodeURIComponent(c); a.target = '_blank'; a.rel = 'noopener';
         const l = el('div'); l.append(a); card.append(l);
-      } else card.append(el('div', 'muted', 'sem o código: só abre pelo link de quem participou'));
+      } else {
+        // o id e a data do primeiro lançamento: com eles dá pra procurar o final sorteado do código fora daqui
+        const ats = [...(Array.isArray(s.people) ? s.people : []), ...(Array.isArray(s.expenses) ? s.expenses : [])]
+          .map((x) => +(x && x.at)).filter((x) => x > 0);
+        const desde = ats.length ? ' · começou em ' + new Date(Math.min(...ats)).toLocaleDateString('pt-BR') : '';
+        card.append(el('div', 'muted', 'sem o código' + desde), el('div', 'muted id', id));
+      }
       out.append(card);
     }
     if (achou.length > 50) out.append(el('p', 'c muted', 'mostrando os 50 mais recentes'));

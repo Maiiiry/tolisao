@@ -229,6 +229,9 @@ const CENAS = {
   gorro: { nome: 'o gorro do título dá uma pirueta a cada toque', quem: 'Lia', atrasoPix: 0, vel: 1,
     acao: async p => { await p.waitForTimeout(1200);
       for (const espera of [1800, 1800]) { await p.click('#titulo'); await p.waitForTimeout(espera); } } },
+  // o banco demora: o carregando fica na tela e a nota sai da impressora quando a sala chega
+  imprime: { nome: 'abrir o evento: o carregando e a nota saindo da impressora', quem: 'Lia', atrasoPix: 600, atrasoSala: 1800,
+    vel: 1, acao: async p => { await p.waitForTimeout(3500); } },
   risco: { nome: 'o risco correndo nas linhas pagas', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => document.querySelector('#settle').scrollIntoView({ block: 'center' }));
       await p.waitForTimeout(3500); } },
@@ -252,6 +255,7 @@ async function video(opts = {}) {
       if (u.includes('/pix/')) { if (c.atrasoPix) await new Promise(ok => setTimeout(ok, c.atrasoPix));
         return r.fulfill({ json: u.includes('/fernando/') ? 'fernando@exemplo.com' : null }); }
       if (r.request().method() !== 'GET') return r.fulfill({ json: {} });
+      if (c.atrasoSala && u.includes('/rooms/')) await new Promise(ok => setTimeout(ok, c.atrasoSala));
       r.fulfill({ json: dados });
     });
     const p = await ctx.newPage();

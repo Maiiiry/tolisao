@@ -19,4 +19,5 @@ crons = ["0 22 * * *"]
 binding = "KV"
 id = "__KV_ID__"
 
-# secrets (wrangler secret, nunca aqui): VAPID_PRIVATE (JWK P-256 em JSON) e VAPID_PUBLIC (base64url)
+# secrets (wrangler secret, nunca aqui): VAPID_PRIVATE (JWK P-256 em JSON) e VAPID_PUBLIC (base64url);
+# VISITAS_SA (JSON da conta de serviço só de leitura) e VISITAS_CHAVE, da página /visitas, que o servidor.yml copia dos secrets do repo

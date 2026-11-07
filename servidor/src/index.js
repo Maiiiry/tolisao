@@ -7,7 +7,7 @@
 //   POST /avisa      {sala, id}                → relê a sala no Firebase e avisa quem recebeu (ou quem foi perdoado),
 //                                                ou, no gasto novo, quem divide e quem pagou
 //   POST /digital/…                             → entrar com a digital (passkey, #168): ver digital.js
-//   GET|POST /visitas                          → a página do dono com o resumo das visitas, atrás de chave: ver visitas.js
+//   POST /admin {chave}                        → o painel do dono (tolisa.com.br/admin): visitas e busca, ver visitas.js
 //   cron todo dia, 19h de Brasília             → a diva cobra sozinha: lembra quem tem a receber em evento parado,
 //                                                e no mêsversário da dívida (15 dias, depois todo mês) avisa quem recebe
 //
@@ -21,7 +21,7 @@
 
 import { empurra } from './vapid.js';
 import * as digital from './digital.js';
-import { visitas } from './visitas.js';
+import { admin } from './visitas.js';
 
 const SALA = /^[0-9a-f]{64}$/;
 const ID = /^[a-z0-9]{1,32}$/;
@@ -362,8 +362,9 @@ export default {
   },
   /** @param {Request} req @param {Env} env */
   async fetch(req, env) {
-    // a página das visitas é do próprio Worker (o formulário dela posta com a origem dele), não do site: vem antes do CORS
-    if (new URL(req.url).pathname === '/visitas') return visitas(req, env);
+    // o endereço velho da página das visitas: o painel agora mora no site
+    if (new URL(req.url).pathname === '/visitas')
+      return new Response(null, { status: 302, headers: { Location: 'https://tolisa.com.br/admin/' } });
     const o = req.headers.get('Origin');
     // navegador de outro site: nem responde. sem Origin (curl, smoke test) passa: CORS não é segurança
     if (o && !origemOk(o)) return new Response(null, { status: 403 });
@@ -380,6 +381,7 @@ export default {
       '/digital/desafio': (b, env, o) => digital.desafio(b, env, (s, c) => json(s, c, o)),
       '/digital/guarda': (b, env, o) => digital.guarda(b, env, (s, c) => json(s, c, o)),
       '/digital/entra': (b, env, o) => digital.entra(b, env, (s, c) => json(s, c, o)),
+      '/admin': (b, env, o) => admin(b, env, (s, c) => json(s, c, o)),
     }[pathname];
     if (!rota) return json(404, { erro: 'não tem' }, o);
     if (req.method !== 'POST') return json(405, { erro: 'só POST' }, o);

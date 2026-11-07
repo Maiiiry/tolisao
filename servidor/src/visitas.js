@@ -1,22 +1,23 @@
-// a página das visitas: o resumo do visitas/<dia> do banco, que o app soma (+1 por aparelho por dia) e ninguém lê.
-// O nó não tem .read, então quem lê é a conta de serviço do Firebase (VISITAS_SA: uma conta só de leitura, papel "Firebase Realtime Database Viewer", e não a de admin que publica as regras).
+// o painel do dono (tolisa.com.br/admin): o resumo do visitas/<dia>, que o app soma (+1 por aparelho por dia) e ninguém
+// lê, e o que a busca de eventos precisa. O nó não tem .read, então quem lê é uma conta de serviço SÓ DE LEITURA
+// (VISITAS_SA, papel "Firebase Realtime Database Viewer"; nunca a de admin que publica as regras).
 //
-//   GET  /visitas            → a página com o campo da chave (nada de número)
-//   POST /visitas  chave=…   → a mesma página com o resumo e a busca de eventos
+//   POST /admin {chave}  → { resumo, banco, token, codigos }; 403 com a chave errada; 503 dizendo o que falta
+//   GET  /visitas        → o endereço velho: manda pro tolisa.com.br/admin/
 //
-// A busca roda no navegador do dono: a página leva um token de uma hora da conta de serviço (só leitura) e baixa o
-// rooms.json direto do Firebase, que no Worker estouraria o tempo de CPU do plano grátis. O código do evento não fica
-// no banco (a sala é o sha-256 dele): o link só volta quando o código é o nome (os eventos do começo) ou está numa
-// lista guardada com a digital (KV digital:<id>, que a página leva junto).
+// A busca roda no navegador do dono: o token é de uma hora, da conta só de leitura, e o admin.js baixa o rooms.json
+// direto do Firebase (no Worker, estouraria o tempo de CPU do plano grátis). O código do evento não fica no banco (a
+// sala é o sha-256 dele): o link só volta quando o código é o nome (os eventos do começo) ou está numa lista guardada
+// com a digital (KV digital:<id>; os códigos vão em `codigos`).
 //
 // A chave é o secret VISITAS_CHAVE do Worker (vem do secret de mesmo nome no GitHub, pelo servidor.yml). Ela vai no
-// corpo do POST e não na URL, pra não ficar no histórico nem em log. Sem a chave ou sem a conta de serviço, 503.
-
+// corpo do POST, nunca na URL, pra não ficar no histórico nem em log.
 import { b64url, deB64url } from './vapid.js';
 
 const texto = new TextEncoder();
 const CHAVE_MIN = 20; // chave curta se adivinha testando: menos que isso a página nem abre
-const DIAS_NA_LISTA = 45;
+// o painel só lê os últimos 15 dias (dá a semana e a anterior). O resto o admin.js pede de 15 em 15, no "ver mais"
+export const DIAS = 15;
 const DIA = 86400 * 1000;
 const BR = 3 * 3600 * 1000; // o dia das visitas é o de São Paulo, igual ao hojeBR do app.js
 
@@ -77,124 +78,34 @@ async function igual(a, b) {
 /** o dia (AAAA-MM-DD) de São Paulo, `n` dias antes de `agora` */
 const diaBR = (agora, n = 0) => new Date(agora - BR - n * DIA).toISOString().slice(0, 10);
 
-/** o resumo das visitas: só dias no formato certo e números inteiros (o banco é hostil)
+/** a consulta do visitas.json só dos dias de `de` a `ate` (AAAA-MM-DD): o $key ordena sem índice, e o lixo de fora
+ * da janela (dia do ano 2000, dia do futuro) nem desce @param {string} de @param {string} ate */
+export const janela = (de, ate) =>
+  `orderBy=${encodeURIComponent('"$key"')}&startAt=${encodeURIComponent(`"${de}"`)}&endAt=${encodeURIComponent(`"${ate}"`)}`;
+
+/** o resumo dos últimos DIAS dias: só dias da janela e números inteiros (o banco é hostil)
  * @param {any} cru o que veio do visitas.json @param {number} agora */
 export function resumo(cru, agora = Date.now()) {
-  /** @type {Record<string, number>} */
-  const dias = {};
-  if (cru && typeof cru === 'object')
-    for (const [d, n] of Object.entries(cru))
-      if (/^\d{4}-\d{2}-\d{2}$/.test(d) && Number.isInteger(n) && n > 0) dias[d] = n;
-  const soma = (/** @type {number} */ de, /** @type {number} */ ate) => {
-    let t = 0;
-    for (let i = de; i < ate; i++) t += dias[diaBR(agora, i)] || 0;
-    return t;
-  };
-  const ordem = Object.keys(dias).sort();
-  /** @type {Record<string, number>} */
-  const meses = {};
-  for (const d of ordem) meses[d.slice(0, 7)] = (meses[d.slice(0, 7)] || 0) + dias[d];
-  const melhor = ordem.reduce((m, d) => (!m || dias[d] > dias[m] ? d : m), '');
+  const ultimos = Array.from({ length: DIAS }, (_, i) => {
+    const d = diaBR(agora, i),
+      n = cru && typeof cru === 'object' ? cru[d] : 0;
+    return { dia: d, n: Number.isInteger(n) && n > 0 ? n : 0 };
+  });
+  const soma = (/** @type {number} */ de, /** @type {number} */ ate) =>
+    ultimos.slice(de, ate).reduce((t, u) => t + u.n, 0);
+  const melhor = ultimos.reduce(
+    (m, u) => (u.n > (m ? m.n : 0) ? u : m),
+    /** @type {{ dia: string, n: number } | null} */ (null),
+  );
   return {
-    hoje: dias[diaBR(agora)] || 0,
-    ontem: dias[diaBR(agora, 1)] || 0,
+    hoje: ultimos[0].n,
+    ontem: ultimos[1].n,
     semana: soma(0, 7),
     semanaAntes: soma(7, 14),
-    mes: soma(0, 30),
-    total: ordem.reduce((t, d) => t + dias[d], 0),
-    desde: ordem[0] || null,
-    melhor: melhor ? { dia: melhor, n: dias[melhor] } : null,
-    meses,
-    ultimos: Array.from({ length: DIAS_NA_LISTA }, (_, i) => {
-      const d = diaBR(agora, i);
-      return { dia: d, n: dias[d] || 0 };
-    }),
+    quinzena: soma(0, DIAS),
+    melhor,
+    ultimos,
   };
-}
-
-const SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
-const fmt = (/** @type {string} */ d) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
-const semana = (/** @type {string} */ d) => SEMANA[new Date(`${d}T12:00:00Z`).getUTCDay()];
-/** a variação da semana contra a anterior, em texto */
-function variacao(agora, antes) {
-  if (!antes) return agora ? 'primeira semana com visita' : 'nada nas duas semanas';
-  const p = Math.round(((agora - antes) / antes) * 100);
-  return `${p > 0 ? '+' : ''}${p}% contra a semana anterior (${antes})`;
-}
-
-const CSS = `
-:root{--paper:#f6efdc;--ink:#2b2622;--ink2:#7a6f62;--wood:#5b3a22;--amber:#b86e00;--green:#2f7d4a}
-@media (prefers-color-scheme:dark){:root{--paper:#1d1a17;--ink:#efe6d4;--ink2:#a69a88;--wood:#0f0d0b;--amber:#f0a640;--green:#6fcf8f}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--wood);color:var(--ink);font:16px/1.35 ui-monospace,Menlo,Consolas,monospace;padding:24px 16px}
-main{background:var(--paper);max-width:460px;margin:0 auto;padding:22px 18px 30px;box-shadow:0 14px 30px rgba(0,0,0,.35)}
-h1{text-align:center;font-size:26px;margin:0 0 2px;letter-spacing:2px;text-transform:uppercase}
-.c{text-align:center}.muted{color:var(--ink2)}
-.hr{border-top:2px dashed var(--ink2);margin:16px 0}
-h2{text-align:center;font-size:15px;letter-spacing:1px;margin:0 0 10px;text-transform:uppercase}
-.row{display:flex;gap:6px;align-items:baseline;margin:3px 0}
-.row .d{flex:1;border-bottom:2px dotted var(--ink2);transform:translateY(-4px)}
-.big{font-size:44px;text-align:center;margin:4px 0 0;color:var(--amber)}
-.dia{display:grid;grid-template-columns:7.5ch 3.5ch 1fr 4ch;gap:6px;align-items:center;margin:2px 0;font-size:14px}
-.dia .b{height:10px;background:var(--amber);min-width:1px}
-.dia.zero .b{background:none}.dia.fds{color:var(--ink2)}
-.dia .n{text-align:right}
-form{display:flex;flex-direction:column;gap:10px;margin-top:10px}
-input,button{font:inherit;padding:10px;border:2px solid var(--ink);background:transparent;color:var(--ink)}
-button{background:var(--ink);color:var(--paper);cursor:pointer}
-.err{color:#c0392b;text-align:center}
-#busca{flex-direction:row}#busca input{flex:1;min-width:0}
-.ev{margin:12px 0;padding-bottom:10px;border-bottom:1px dotted var(--ink2)}.ev .muted{font-size:14px}
-.ev a{color:var(--amber)}.ev .id{font-size:12px;word-break:break-all;user-select:all}`;
-
-/** a página inteira. Com `script`, ele entra com nonce e a página pode falar com o banco
- * @param {string} miolo @param {{ script: string, banco: string } | null} [js] */
-function pagina(miolo, status = 200, js = null) {
-  const nonce = b64url(crypto.getRandomValues(new Uint8Array(16)));
-  const csp = js
-    ? `default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${new URL(js.banco).origin}; form-action 'self'; frame-ancestors 'none'`
-    : "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'";
-  return new Response(
-    `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>visitas · tô lisa</title><style>${CSS}</style></head><body><main><h1>tô lisa</h1><div class="c muted">visitas</div><div class="hr"></div>${miolo}</main>${js ? `<script nonce="${nonce}">${js.script}</script>` : ''}</body></html>`,
-    {
-      status,
-      headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Cache-Control': 'no-store',
-        'Content-Security-Policy': csp,
-        'Referrer-Policy': 'no-referrer',
-        'X-Robots-Tag': 'noindex',
-      },
-    },
-  );
-}
-
-const FORM = (erro = '') =>
-  `${erro ? `<p class="err">${erro}</p>` : ''}<form method="post" action="/visitas"><input type="password" name="chave" placeholder="a chave" autocomplete="current-password" required autofocus><button>ver as visitas</button></form>`;
-
-/** o resumo em html @param {ReturnType<typeof resumo>} r */
-export function htmlResumo(r) {
-  const linha = (/** @type {string} */ l, /** @type {string|number} */ v) =>
-    `<div class="row"><span>${l}</span><span class="d"></span><span>${v}</span></div>`;
-  const maior = Math.max(1, ...r.ultimos.map((u) => u.n));
-  const dias = r.ultimos
-    .map((u) => {
-      const s = semana(u.dia);
-      const cls = `dia${u.n ? '' : ' zero'}${s === 'sáb' || s === 'dom' ? ' fds' : ''}`;
-      return `<div class="${cls}"><span>${fmt(u.dia)}</span><span>${s}</span><span class="b" style="width:${Math.round((u.n / maior) * 100)}%"></span><span class="n">${u.n}</span></div>`;
-    })
-    .join('');
-  const meses = Object.entries(r.meses)
-    .reverse()
-    .map(([m, n]) => linha(`${m.slice(5, 7)}/${m.slice(0, 4)}`, n))
-    .join('');
-  return `<h2>*** últimos 7 dias ***</h2><div class="big">${r.semana}</div><div class="c muted">${variacao(r.semana, r.semanaAntes)}</div>
-<div class="hr"></div>${linha('hoje', r.hoje)}${linha('ontem', r.ontem)}${linha('últimos 30 dias', r.mes)}${linha('desde o começo', r.total)}${
-    r.melhor ? linha(`melhor dia (${fmt(r.melhor.dia)})`, r.melhor.n) : ''
-  }${r.desde ? `<div class="c muted" style="margin-top:6px">contando desde ${fmt(r.desde)}/${r.desde.slice(0, 4)}</div>` : ''}
-<div class="hr"></div><h2>*** dia a dia ***</h2>${dias}
-${meses ? `<div class="hr"></div><h2>*** por mês ***</h2>${meses}` : ''}
-<div class="hr"></div><div class="c muted" style="font-size:13px">aparelhos por dia: quem limpa o navegador conta de novo, e quem abre com ?naoconta não conta.</div>`;
 }
 
 /** os códigos das listas guardadas com a digital (o KV digital:<id> é { eventos: [{ code, me }] }). Poucas passkeys
@@ -220,80 +131,14 @@ export async function codigosDaDigital(kv) {
   return [...codigos];
 }
 
-const BUSCA = `<div class="hr"></div><h2>*** procurar evento ***</h2><form id="busca"><input id="buscaQ" placeholder="nome do evento ou de alguém" autocomplete="off" required><button>achar</button></form><p class="c muted" id="buscaSt"></p><div id="buscaRes"></div>`;
-
-// roda no navegador do dono. Tudo do banco entra por textContent: o banco é hostil
-const BUSCA_JS = `(() => {
-  const d = JSON.parse(document.getElementById('buscaDados').textContent);
-  const q = document.getElementById('buscaQ'), st = document.getElementById('buscaSt'), out = document.getElementById('buscaRes');
-  const norm = (t) => String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-  const sha = async (s) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))]
-    .map((b) => b.toString(16).padStart(2, '0')).join('');
-  let salas = null, porHash = null;
-  async function baixa() {
-    if (salas) return;
-    st.textContent = 'baixando os eventos…';
-    const r = await fetch(d.banco + '/rooms.json?access_token=' + encodeURIComponent(d.token));
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    salas = (await r.json()) || {};
-    porHash = new Map();
-    for (const c of d.codigos) porHash.set(await sha(c), c);
-  }
-  // o código dos eventos do começo era o nome digitado, em minúsculas
-  async function codigoDe(id, s) {
-    if (porHash.has(id)) return porHash.get(id);
-    const n = typeof s.name === 'string' ? s.name.trim().toLowerCase() : '';
-    for (const c of new Set([n, n.replace(/\s+/g, '-'), norm(n), norm(n).replace(/\s+/g, '-')]))
-      if (c && (await sha(c)) === id) return c;
-    return null;
-  }
-  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
-  document.getElementById('busca').onsubmit = async (ev) => {
-    ev.preventDefault();
-    out.textContent = '';
-    const t = norm(q.value);
-    if (!t) return;
-    try { await baixa(); } catch (err) { st.textContent = 'não consegui baixar os eventos (' + err.message + '). recarregue a página.'; return; }
-    const achou = [];
-    for (const [id, s] of Object.entries(salas)) {
-      if (!s || typeof s !== 'object') continue;
-      const gente = Array.isArray(s.people) ? s.people.filter((p) => p && typeof p.name === 'string').map((p) => p.name) : [];
-      if (norm(s.name || '').includes(t) || gente.some((g) => norm(g).includes(t))) achou.push({ id, s, gente });
-    }
-    achou.sort((a, b) => (+b.s.updatedAt || 0) - (+a.s.updatedAt || 0));
-    const total = Object.keys(salas).length;
-    st.textContent = achou.length ? achou.length + ' de ' + total + ' eventos' : 'nada entre ' + total + ' eventos';
-    for (const { id, s, gente } of achou.slice(0, 50)) {
-      const c = await codigoDe(id, s), n = Array.isArray(s.expenses) ? s.expenses.length : 0;
-      const card = el('div', 'ev'), topo = el('div', 'row');
-      topo.append(el('span', '', typeof s.name === 'string' && s.name ? s.name : '(sem nome)'), el('span', 'd'),
-        el('span', '', s.updatedAt ? new Date(+s.updatedAt).toLocaleDateString('pt-BR') : ''));
-      card.append(topo, el('div', 'muted', (gente.join(', ') || 'ninguém') + ' · ' + n + ' lançamento' + (n === 1 ? '' : 's')));
-      if (c) {
-        const a = el('a', '', 'abrir (' + c + ')');
-        a.href = 'https://tolisa.com.br/?evento=' + encodeURIComponent(c); a.target = '_blank'; a.rel = 'noopener';
-        const l = el('div'); l.append(a); card.append(l);
-      } else {
-        // o id e a data do primeiro lançamento: com eles dá pra procurar o final sorteado do código fora daqui
-        const ats = [...(Array.isArray(s.people) ? s.people : []), ...(Array.isArray(s.expenses) ? s.expenses : [])]
-          .map((x) => +(x && x.at)).filter((x) => x > 0);
-        const desde = ats.length ? ' · começou em ' + new Date(Math.min(...ats)).toLocaleDateString('pt-BR') : '';
-        card.append(el('div', 'muted', 'sem o código' + desde), el('div', 'muted id', id));
-      }
-      out.append(card);
-    }
-    if (achou.length > 50) out.append(el('p', 'c muted', 'mostrando os 50 mais recentes'));
-  };
-})();`;
-
-/** @param {Request} req @param {{ FIREBASE_DB: string, VISITAS_SA?: string, VISITAS_CHAVE?: string, KV?: any }} env */
-export async function visitas(req, env) {
+/** o que falta pro painel ligar, sem mostrar nada do valor: o dono confere o secret e roda o "Sobe a API" de novo
+ * @param {{ VISITAS_SA?: string, VISITAS_CHAVE?: string }} env */
+function faltando(env) {
   const chave = env.VISITAS_CHAVE || '';
   let sa = null;
   try {
     sa = JSON.parse(env.VISITAS_SA || 'null');
   } catch {}
-  // diz o que falta sem mostrar nada do valor: o dono confere o secret no GitHub e roda o "Sobe a API" de novo
   const falta = [
     !chave
       ? 'falta o VISITAS_CHAVE'
@@ -308,30 +153,35 @@ export async function visitas(req, env) {
           ? 'o VISITAS_SA não tem client_email e private_key: é o .json da chave da conta de serviço'
           : '',
   ].filter(Boolean);
-  if (falta.length) return pagina(`<p class="c">a página ainda não foi ligada: ${falta.join('; ')}.</p>`, 503);
-  if (req.method === 'GET') return pagina(FORM());
-  if (req.method !== 'POST') return pagina(FORM(), 405);
-  const t = await req.text();
-  const tentou = t.length <= 512 ? new URLSearchParams(t).get('chave') || '' : '';
+  return { falta, chave, sa };
+}
+
+/** POST /admin {chave}
+ * @param {any} b @param {{ FIREBASE_DB: string, VISITAS_SA?: string, VISITAS_CHAVE?: string, KV?: any }} env
+ * @param {(status: number, corpo: any) => Response} resp */
+export async function admin(b, env, resp) {
+  const { falta, chave, sa } = faltando(env);
+  if (falta.length) return resp(503, { erro: `o painel ainda não foi ligado: ${falta.join('; ')}.` });
+  const tentou = typeof b.chave === 'string' && b.chave.length <= 512 ? b.chave : '';
   if (!(await igual(tentou, chave))) {
     await new Promise((ok) => setTimeout(ok, 800)); // errou: devagar, pra testar chave no braço não render
-    return pagina(FORM('chave errada'), 403);
+    return resp(403, { erro: 'chave errada' });
   }
   try {
     const token = await tokenGoogle(sa);
-    const r = await fetch(`${env.FIREBASE_DB}/visitas.json?access_token=${encodeURIComponent(token)}`);
+    const agora = Date.now();
+    const r = await fetch(
+      `${env.FIREBASE_DB}/visitas.json?${janela(diaBR(agora, DIAS - 1), diaBR(agora))}&access_token=${encodeURIComponent(token)}`,
+    );
     if (!r.ok) throw new Error(`banco: HTTP ${r.status}`);
-    const dados = JSON.stringify({ banco: env.FIREBASE_DB, token, codigos: await codigosDaDigital(env.KV) }).replace(
-      /</g,
-      '\\u003c',
-    );
-    return pagina(
-      `${htmlResumo(resumo(await r.json()))}${BUSCA}<script type="application/json" id="buscaDados">${dados}</script>`,
-      200,
-      { script: BUSCA_JS, banco: env.FIREBASE_DB },
-    );
+    return resp(200, {
+      resumo: resumo(await r.json(), agora),
+      banco: env.FIREBASE_DB,
+      token,
+      codigos: await codigosDaDigital(env.KV),
+    });
   } catch (err) {
     console.error(err);
-    return pagina('<p class="err">não consegui ler o banco agora. tenta de novo daqui a pouco.</p>', 502);
+    return resp(502, { erro: 'não consegui ler o banco agora. tenta de novo daqui a pouco.' });
   }
 }

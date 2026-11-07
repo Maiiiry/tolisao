@@ -1003,6 +1003,9 @@
   // o Adicionar à Tela de Início: quadrado arredondado com um mais
   const MAIS_SVG =
     '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>';
+  // o admin (o painel do dono, atrás do ?testes): uma chave
+  const CHAVE_SVG =
+    '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3M14 9l2 2"/></svg>';
   // o instalar: a seta descendo pra bandeja
   const BAIXAR_SVG =
     '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5M4 20h16"/></svg>';
@@ -2792,16 +2795,15 @@
           : ''
       }
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><span class="campoEx"><input id="gateCode" placeholder="ex: ${natal() ? 'amigo secreto, ceia' : 'praia, churras'}" required autocapitalize="none"><span class="exemplo" aria-hidden="true"></span></span><button class="small">${botao}</button></form>
-      <p id="gateErr" class="status err" style="margin:0"></p><div class="c"><button id="instalarGate" class="ico amb hidden">${BAIXAR_SVG} instalar</button></div>${linhaDigital(evs.length > 0)}${
-        // quem testa tudo (o dono, com o ?testes) chega no painel dele pela tela inicial
-        emTeste() && !aberto
-          ? '<div class="c digital"><a class="link" id="painelDono" href="admin/">painel do dono</a></div>'
-          : ''
-      }${aberto ? `<div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>` : ''}`,
+      <p id="gateErr" class="status err" style="margin:0"></p><div class="c" style="display:flex;justify-content:center;gap:8px"><button id="instalarGate" class="ico amb hidden">${BAIXAR_SVG} instalar</button>${
+        // quem testa tudo (o dono, com o ?testes) chega no admin pela tela inicial, ao lado do instalar
+        emTeste() && !aberto ? `<button id="adminBtn" class="ico amb">${CHAVE_SVG} admin</button>` : ''
+      }</div>${linhaDigital(evs.length > 0)}${aberto ? `<div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>` : ''}`,
       !aberto,
     );
     mostraInstalar();
     if (aberto) $('#evBack').onclick = closeOverlay;
+    if ($('#adminBtn')) $('#adminBtn').onclick = () => location.assign('admin/');
     if (!aberto) digitaTitulo($('#tituloGate'), chegou ? fichaDoPonto : undefined, chegou ? rodaComanda : undefined);
     if (chegou) chove();
     trocaExemplo($('#gateCode'));
@@ -4100,7 +4102,14 @@
     if (itemsOpen) setDevice('itemsOpened', true);
     render();
     // o leque é só do toque que abre (o style.css): tira no fim, senão o próximo render abria de novo
-    const corpo = $('#itemsBody');
+    const corpo = $('#itemsBody'),
+      lista = $('#expenses');
+    // cada linha sai do topo da lista: mede onde ela fica, antes do leque começar
+    if (itemsOpen) {
+      const y0 = lista.getBoundingClientRect().top;
+      for (const l of /** @type {HTMLElement[]} */ ([...lista.children]))
+        l.style.setProperty('--topo', `${l.getBoundingClientRect().top - y0}px`);
+    }
     corpo.classList.toggle('leque', itemsOpen && !semMovimento());
     if (itemsOpen) setTimeout(() => corpo.classList.remove('leque'), 700);
   };

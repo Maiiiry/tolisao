@@ -172,16 +172,18 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 #itemsHead.aberto:before{box-shadow:inset 2px 2px 0 rgba(0,0,0,.14);background:var(--afundado);border-color:var(--rule)}
 @media (prefers-reduced-motion:reduce){#itemsHead,#itemsHead:before{transition:none}}
 /* a lista estica e encolhe (o height:auto anima com o interpolate-size; o display espera o fim pra sumir) e, no toque
-   que abre, os itens saem de trás da linha em leque, como os quitados antigos (o .leque é do toque, não de cada render:
-   um sync com a lista aberta não abre o leque de novo). As outras opções ficaram em docs/animacoes.md */
+   que abre, os itens saem de trás da linha em leque, como os quitados antigos: todos do topo da lista (o --topo de cada
+   um, medido no toque; as linhas têm alturas diferentes) e o de cima por cima. O .leque é do toque, não de cada render:
+   um sync com a lista aberta não abre o leque de novo. As outras opções ficaram em docs/animacoes.md */
 #itemsBody{interpolate-size:allow-keywords;overflow:clip;height:auto;transition:height .4s cubic-bezier(.3,.6,.4,1),display .4s allow-discrete}
 #itemsBody.hidden{height:0}
 @starting-style{#itemsBody:not(.hidden){height:0}}
-#itemsBody.leque #expenses>*{position:relative;background:var(--paper);animation:leque .45s cubic-bezier(.2,.8,.3,1) both}
-#itemsBody.leque #expenses>:nth-child(1){--i:1;z-index:9}#itemsBody.leque #expenses>:nth-child(2){--i:2;z-index:8}
-#itemsBody.leque #expenses>:nth-child(3){--i:3;z-index:7}#itemsBody.leque #expenses>:nth-child(4){--i:4;z-index:6}
-#itemsBody.leque #expenses>:nth-child(5){--i:5;z-index:5}#itemsBody.leque #expenses>:nth-child(6){--i:6;z-index:4}
-#itemsBody.leque #expenses>:nth-child(n+7){--i:7;z-index:3}
+@keyframes lequeItens{from{transform:translateY(calc(-1 * var(--topo,0px))) scale(.96)}to{transform:none}}
+#itemsBody.leque #expenses>*{position:relative;background:var(--paper);animation:lequeItens .45s cubic-bezier(.2,.8,.3,1) both}
+#itemsBody.leque #expenses>:nth-child(1){z-index:9}#itemsBody.leque #expenses>:nth-child(2){z-index:8}
+#itemsBody.leque #expenses>:nth-child(3){z-index:7}#itemsBody.leque #expenses>:nth-child(4){z-index:6}
+#itemsBody.leque #expenses>:nth-child(5){z-index:5}#itemsBody.leque #expenses>:nth-child(6){z-index:4}
+#itemsBody.leque #expenses>:nth-child(n+7){z-index:3}
 @media (prefers-reduced-motion:reduce){#itemsCaret span,#itemsHead.pisca,#itemsHead.pisca:before,#itemsHead.pisca #itemsCaret span,#itemsHead.pisca #itemsCaret path,#itemsHead.suave #itemsCaret,#itemsBody,#itemsBody.leque #expenses>*{transition:none;animation:none}}
 /* a linha dos itens é um botão com moldura: as réguas em volta dela sobravam. Ficam só o espaço */
 #mine>.hr,#itemsSec>.hr{border-top-color:transparent}
@@ -689,7 +691,7 @@ button.ico.ok:active{transform:translate(2px,2px);box-shadow:none}
 .evs details.antigos[open]::details-content{height:auto}
 .evs details.antigos>summary:before{content:"▸";display:inline-block;margin-right:.4em;transition:transform .25s ease}
 .evs details.antigos[open]>summary:before{transform:rotate(90deg)}
-@keyframes leque{from{opacity:0;transform:translateY(calc(var(--i) * -100%)) scale(.96)}to{opacity:1;transform:none}}
+@keyframes leque{from{transform:translateY(calc(var(--i) * -100%)) scale(.96)}to{transform:none}}
 .evs details.antigos>.ev{position:relative;background:var(--paper)}
 .evs details.antigos[open]>.ev{animation:leque .45s cubic-bezier(.2,.8,.3,1) both}
 .evs details.antigos>.ev:nth-of-type(1){--i:1;z-index:8}

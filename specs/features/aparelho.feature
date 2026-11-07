@@ -17,14 +17,14 @@ Funcionalidade: O que fica guardado no aparelho
     E eu toco no ✎
     Então o anotar oferece colar a conta
 
-  Cenário: quem testa tudo chega no painel do dono pela tela inicial
+  Cenário: quem testa tudo chega no admin pela tela inicial
     Dado que eu pedi pra testar tudo
     E que eu abro o site sem evento
-    Então a tela inicial tem o caminho pro painel do dono
+    Então a tela inicial tem o botão do admin
 
-  Cenário: sem pedir pra testar, a tela inicial não mostra o painel do dono
+  Cenário: sem pedir pra testar, a tela inicial não mostra o admin
     Dado que eu abro o site sem evento
-    Então a tela inicial não tem o caminho pro painel do dono
+    Então a tela inicial não tem o botão do admin
 
   Cenário: quem já usava o site não perde quem é nem o segredo da chave
     Dado que este aparelho guardou, do jeito antigo, que eu sou Fernando e o segredo "tok-antigo" da chave dele

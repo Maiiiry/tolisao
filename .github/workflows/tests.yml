@@ -19,13 +19,18 @@ jobs:
         with:
           node-version: 24
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            servidor/package-lock.json
       - run: npm ci
       # só olha ferramenta (o site não tem dependência): avisa, mas não trava o deploy
       - run: npm audit --audit-level=high || echo "::warning::npm audit achou falha grave numa ferramenta de teste"
       - run: npx prettier --check app.js qr.js mesa/mesa.js
       - run: npm run types
       - run: npm run regras
-      # a API (servidor/) se testa com o node puro: o npm ci de lá só traz o wrangler, que é pra subir
+      # a API (servidor/) tem o package.json dela: o npm ci de lá traz o cucumber (que testa) e o wrangler (que sobe)
+      - run: npm ci
+        working-directory: servidor
       - run: npm test
         working-directory: servidor
       - run: echo "PW_VERSION=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_ENV"

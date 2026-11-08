@@ -2176,13 +2176,15 @@
       .join('');
     $('#settle').innerHTML = (deve || nada) + pagos;
   }
+  // o formatador é feito uma vez: o toLocaleDateString com opções monta um a cada chamada, e com muitos itens isso
+  // travava o toque que abre e fecha a lista
+  const DIA_DA_LISTA = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
   /** a lista dos itens, do mais novo pro mais velho, separada por dia quando tem mais de um */
   function renderItens() {
     const items = state.expenses.filter((e) => e.kind !== 'payment');
     const all = [...items].reverse(),
       list = showAll ? all : all.slice(0, 10);
-    const dayOf = (e) =>
-      new Date(e.at).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
+    const dayOf = (e) => DIA_DA_LISTA.format(e.at);
     const days = new Set(all.map(dayOf));
     let lastDay = null;
     // editar troca o item por outro: o que saiu fica no `gone` com `to`, e vale a última edição
@@ -4052,22 +4054,55 @@
     render();
   };
   $('#itemsHead').onclick = () => {
+    const corpo = $('#itemsBody'),
+      lista = $('#expenses');
+    // tocou no meio do abre ou do fecha: parte da altura de agora
+    const de = corpo.getBoundingClientRect().height,
+      margem = parseFloat(getComputedStyle(corpo).marginTop);
+    for (const a of corpo.getAnimations()) a.cancel();
     itemsOpen = !itemsOpen;
     if (itemsOpen) setDevice('itemsOpened', true);
     // só a lista muda: refazer a nota inteira (render) travava o toque no celular
     agendaConviteItens(temMe());
     renderItens();
+    const anima = !semMovimento();
+    // fechando, a lista fica na tela até a altura chegar a zero (o .fechando segura o display)
+    corpo.classList.toggle('fechando', anima && !itemsOpen);
     // o leque é só do toque que abre (o style.css): tira no fim, senão o próximo render abria de novo
-    const corpo = $('#itemsBody'),
-      lista = $('#expenses');
-    // cada linha sai do topo da lista: mede onde ela fica, antes do leque começar
-    if (itemsOpen) {
-      const y0 = lista.getBoundingClientRect().top;
-      for (const l of /** @type {HTMLElement[]} */ ([...lista.children]))
-        l.style.setProperty('--topo', `${l.getBoundingClientRect().top - y0}px`);
+    corpo.classList.toggle('leque', itemsOpen && anima);
+    if (!anima) return;
+    const caixa = corpo.getBoundingClientRect(),
+      ate = itemsOpen ? caixa.height : 0;
+    // a lista estica e encolhe só até o pé da tela: o que passa dele ninguém vê, e com muitos itens a altura
+    // inteira corria centenas de pixels por quadro. Abrindo, o resto entra de uma vez fora da tela
+    const tela = Math.max(0, innerHeight - caixa.top);
+    const px = (h) => `${Math.min(h, tela)}px`;
+    const mt = getComputedStyle(corpo).marginTop;
+    // sumida de vez (display:none), a margem da linha e a da régua de baixo viram uma só; com altura zero ainda
+    // sobra a soma das duas. A margem da lista desconta a diferença, senão o fim do fecha dava um pulinho
+    const regua = /** @type {HTMLElement} */ (corpo.nextElementSibling),
+      classes = corpo.className;
+    corpo.className = 'hidden';
+    const yFechada = regua.getBoundingClientRect().top;
+    corpo.className = 'hidden fechando';
+    corpo.style.cssText = 'height:0;margin-top:0';
+    const junta = `${yFechada - regua.getBoundingClientRect().top}px`;
+    corpo.style.cssText = '';
+    corpo.className = classes;
+    const desde = de ? `${margem}px` : junta;
+    corpo.animate(
+      { height: [px(de), px(ate)], marginTop: [desde, itemsOpen ? mt : junta] },
+      { duration: 400, easing: 'cubic-bezier(.3,.6,.4,1)' },
+    ).onfinish = () => corpo.classList.remove('fechando');
+    if (!itemsOpen) return;
+    // cada linha sai do topo da lista: mede onde ela fica, antes do leque começar. Só as que caem na tela
+    const y0 = lista.getBoundingClientRect().top;
+    for (const l of /** @type {HTMLElement[]} */ ([...lista.children])) {
+      const y = l.getBoundingClientRect().top;
+      l.classList.toggle('vem', y < innerHeight);
+      l.style.setProperty('--topo', `${y - y0}px`);
     }
-    corpo.classList.toggle('leque', itemsOpen && !semMovimento());
-    if (itemsOpen) setTimeout(() => corpo.classList.remove('leque'), 700);
+    setTimeout(() => corpo.classList.remove('leque'), 700);
   };
   /** @type {HTMLElement | null} */
   let sheetDeQuem = null;

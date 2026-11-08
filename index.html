@@ -30,7 +30,7 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Cachorro “to ficando não-verbal (sem verba)” e o texto: tô lisa, quem me deve?">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="stylesheet" href="style.css?v=20261108a">
+<link rel="stylesheet" href="style.css?v=20261108b">
 </head>
 <body>
 <div id="overlay" class="hidden"><div class="paper" id="overlayBox" role="dialog" aria-modal="true"></div></div>
@@ -81,8 +81,8 @@
 <div id="sheet" class="hidden"><div class="paper" role="dialog" aria-modal="true" aria-labelledby="sheetTitulo">
   <h2 style="margin-top:0" id="sheetTitulo">Anotar</h2>
   <form id="expenseForm">
-    <div class="two"><input id="amount" type="text" inputmode="numeric" enterkeyhint="next" autocomplete="off" placeholder="0,00" required><button type="button" id="contaBtn" class="hidden" title="Colar o texto da conta" aria-label="colar o texto da conta"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg></button><input id="desc" placeholder="O quê?" required maxlength="60" enterkeyhint="done" autocomplete="off" autocapitalize="sentences"></div>
     <div id="fotoConta" class="fotoConta hidden"></div>
+    <div class="two"><input id="amount" type="text" inputmode="numeric" enterkeyhint="next" autocomplete="off" placeholder="0,00" required><input id="desc" placeholder="O quê?" required maxlength="60" enterkeyhint="done" autocomplete="off" autocapitalize="sentences"></div>
     <select id="payer" required></select>
     <div class="muted" id="splitHint"></div>
     <div class="seg" id="splitSeg" role="tablist" aria-label="jeito de dividir"><button type="button" role="tab" data-modo="equal">igual</button><button type="button" role="tab" data-modo="custom">partes diferentes</button></div>
@@ -96,7 +96,7 @@
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script src="qr.js?v=20261019b"></script>
-<script src="app.js?v=20261108a"></script>
+<script src="app.js?v=20261108b"></script>
 <!-- Cloudflare Web Analytics: conta visitas, sem cookie. Manda o endereço inteiro, ?evento= junto (decisão do dono). Os testes tiram (_serve.cjs) -->
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "3514c3d7f5b04f8281f536d90597445e"}'></script>
 <script>setTimeout(function(){var a=document.getElementById("app");if(a&&!a.classList.contains("nospin"))a.classList.remove("loading")},8000)</script>

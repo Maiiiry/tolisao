@@ -15,7 +15,7 @@ Funcionalidade: O que fica guardado no aparelho
     Dado que eu pedi pra testar tudo
     Quando eu abro o evento como Lia
     E eu toco no ✎
-    Então o anotar oferece colar a conta
+    Então o anotar oferece a foto da conta
 
   Cenário: o Fernando chega no admin pela tela inicial, sem pedir nada
     Dado que neste aparelho eu me chamo "Fernando"

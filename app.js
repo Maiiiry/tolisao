@@ -2121,7 +2121,6 @@
       prevPayer = payerSel.value || me;
     payerSel.innerHTML = state.people.map((p) => `<option value="${p.id}">${esc(p.name)} pagou</option>`).join('');
     if (state.people.some((p) => p.id === prevPayer)) payerSel.value = prevPayer;
-    $('#contaBtn').classList.toggle('hidden', !temMesa());
     carregaFoto();
     const prev = inputs('#splitChips input');
     const known = new Set(prev.map((i) => i.value)),
@@ -2308,14 +2307,15 @@
     }
     throw new Error('foto grande demais');
   }
-  /** a faixa do anotar: o botão de tirar a foto, ou a miniatura dela (toque amplia; o trocar fica no cartão ampliado) */
+  /** a faixa do anotar: o botão de tirar a foto, ou a foto numa faixa fixa no topo, que rola por dentro (toque amplia; o trocar fica no cartão ampliado) */
   function desenhaFoto() {
     const box = $('#fotoConta');
     if (!box) return;
     box.classList.toggle('hidden', !temMesa());
     const url = fotoDaConta && fotoDaConta.id === groupId ? fotoDaConta.url : null;
+    box.classList.toggle('tem', !!url);
     box.innerHTML = url
-      ? `<button type="button" class="miniFoto" id="fotoVer" aria-label="ver a foto da conta"><img src="${url}" alt="foto da conta"></button>`
+      ? `<div class="fotoFaixa"><button type="button" class="miniFoto" id="fotoVer" aria-label="ver a foto da conta"><img src="${url}" alt="foto da conta"></button></div><span class="fotoLupa" aria-hidden="true">⤢</span>`
       : `<button type="button" class="ico amb" id="fotoTira">📷 foto da conta</button>`;
   }
   /** pergunta ao banco se o evento já tem foto, e desenha */
@@ -4647,7 +4647,6 @@
     ['#temaBtn', trocaTema],
     ['h1>span', voaGorro],
     ['#instalar, #instalarGate', instala],
-    ['#contaBtn', abreConta],
     ['#contaCola', colaConta],
     ['[data-preco]', marcaPreco],
     ['#fotoUsar', usaFoto],

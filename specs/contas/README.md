@@ -1,6 +1,6 @@
 # Contas de verdade
 
-Fotos de conta tiradas no bar, cada uma com o gabarito do lado: o que está escrito no papel. Eram a régua do leitor de foto do site (o tesseract, que saiu em 01/11/2026: lia metade à noite e inventava número). Ficam como base realista pro texto da conta (o 📋 do anotar, atrás do `?mesa`): a pessoa tira a foto com o celular, copia o texto que o próprio celular lê (Texto ao Vivo no iPhone, Lens no Android) e cola, e o `precosDoTexto()` acha os preços.
+Fotos de conta tiradas no bar, cada uma com o gabarito do lado: o que está escrito no papel. Eram a régua do leitor de foto do site (o tesseract, que saiu em 01/11/2026: lia metade à noite e inventava número). Ficam como base realista pro texto da conta (o 📋 do anotar saiu; o código segue no `app.js`, sem entrada): a pessoa tira a foto com o celular, copia o texto que o próprio celular lê (Texto ao Vivo no iPhone, Lens no Android) e cola, e o `precosDoTexto()` acha os preços.
 
 Pra medir o `precosDoTexto()` numa conta, ponha do lado o `.txt` de mesmo nome com o texto que o celular copiou da foto, do jeito que veio.
 

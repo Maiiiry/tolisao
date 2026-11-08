@@ -23,3 +23,11 @@ Then(/^a conta soma R\$ ([\d.,]+)$/, async ({ mundo }, v) => { await expect(mund
 Then('a conta mostra {string} por {word}', async ({ mundo }, nome, v) => { await expect(linha(mundo.p, v).locator('.l')).toContainText(nome); });
 Then('a conta diz {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#contaRecado')).toContainText(txt); });
 Then(/^o valor do anotar é ([\d.,]+)$/, async ({ mundo }, v) => { await expect(mundo.p.locator('#amount')).toHaveValue(v); });
+
+// a foto da conta: um PNG de 1 pixel serve, o app refaz como JPEG
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==', 'base64');
+When('eu tiro a foto da conta', async ({ mundo }) => {
+  const [arq] = await Promise.all([mundo.p.waitForEvent('filechooser'), mundo.p.getByRole('button', { name: /foto da conta/ }).click()]);
+  await arq.setFiles({ name: 'conta.png', mimeType: 'image/png', buffer: PNG });
+});
+Then('o anotar mostra a foto da conta', async ({ mundo }) => { await expect(mundo.p.locator('#fotoConta img')).toBeVisible(); });

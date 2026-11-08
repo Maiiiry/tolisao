@@ -76,3 +76,16 @@ Funcionalidade: Texto da conta
         OBRIGADO PELA PREFERENCIA
         """
       Então a conta diz "não achei preço nesse texto"
+
+  Cenário: a foto da conta fica guardada no evento, de referência pra digitar
+    Quem tira a foto da conta no anotar fica com ela ali ao lado enquanto digita os itens,
+    e qualquer pessoa do evento vê a mesma foto.
+    Dado que eu pedi pra testar tudo
+    Quando eu abro o evento como Ana
+    E eu toco no ✎
+    E eu tiro a foto da conta
+    Então aparece o aviso "Foto da conta guardada"
+    E o anotar mostra a foto da conta
+    Quando eu abro o evento como Beto em outro aparelho
+    E eu toco no ✎
+    Então o anotar mostra a foto da conta

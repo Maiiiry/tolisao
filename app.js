@@ -216,6 +216,8 @@
     if (q.has('testes')) setDevice('testesOn', q.get('testes') === '0' ? undefined : true);
   }
   const emTeste = () => device().testesOn === true;
+  // o dono: aparelho em que o último nome que escolhi foi Fernando ganha o admin, sem flag (a chave do painel é que protege)
+  const souFernando = () => typeof device().myName === 'string' && buscaNome(device().myName) === 'fernando';
   // soma 1 em visitas/<dia> no banco, uma vez por aparelho por dia; o dono lê no console
   if (!LOCAL && DB && device().naoConta !== true && device().countedDay !== hojeBR)
     fetch(`${DB}/visitas/${hojeBR}.json?print=silent`, {
@@ -2120,6 +2122,7 @@
     payerSel.innerHTML = state.people.map((p) => `<option value="${p.id}">${esc(p.name)} pagou</option>`).join('');
     if (state.people.some((p) => p.id === prevPayer)) payerSel.value = prevPayer;
     $('#contaBtn').classList.toggle('hidden', !temMesa());
+    carregaFoto();
     const prev = inputs('#splitChips input');
     const known = new Set(prev.map((i) => i.value)),
       checked = new Set(prev.filter((i) => i.checked).map((i) => i.value));
@@ -2278,6 +2281,92 @@
     }
     $('#itemsBody').classList.toggle('hidden', !itemsOpen);
     $('#total').innerHTML = valorHtml(items.reduce((a, e) => a + centavos(e), 0));
+  }
+
+  // a foto da conta, de referência: a pessoa tira a foto no anotar e fica com ela ao lado enquanto digita os itens. Vai pro
+  // banco (fotos/<evento>), um JPEG em texto de até ~400 mil caracteres: o evento todo vê, e o `rooms` não engorda
+  const FOTO_LADO = 1400; // o maior lado, em pixels: dá pra ler a conta e a foto continua leve
+  const FOTO_MAX = 400000; // o mesmo teto do .validate de fotos/$room
+  /** a foto do evento aberto: undefined ainda não perguntei ao banco, null não tem @type {{ id: string, url: string | null } | undefined} */
+  let fotoDaConta;
+  /** a foto vira JPEG pequeno: encolhe e baixa a qualidade até caber no teto @param {File} arq @returns {Promise<string>} */
+  async function encolheFoto(arq) {
+    const img = await createImageBitmap(arq);
+    for (const [lado, q] of [
+      [FOTO_LADO, 0.7],
+      [FOTO_LADO, 0.5],
+      [1000, 0.5],
+      [700, 0.5],
+    ]) {
+      const k = Math.min(1, lado / Math.max(img.width, img.height)),
+        c = document.createElement('canvas');
+      c.width = Math.round(img.width * k);
+      c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      const url = c.toDataURL('image/jpeg', q);
+      if (url.length <= FOTO_MAX) return url;
+    }
+    throw new Error('foto grande demais');
+  }
+  /** a faixa do anotar: o botão de tirar a foto, ou a miniatura dela (toque amplia) e o trocar */
+  function desenhaFoto() {
+    const box = $('#fotoConta');
+    if (!box) return;
+    box.classList.toggle('hidden', !temMesa());
+    const url = fotoDaConta && fotoDaConta.id === groupId ? fotoDaConta.url : null;
+    box.innerHTML = url
+      ? `<button type="button" class="miniFoto" id="fotoVer" aria-label="ver a foto da conta"><img src="${url}" alt="foto da conta"></button><button type="button" class="ico amb" id="fotoTroca">trocar foto</button>`
+      : `<button type="button" class="ico amb" id="fotoTira">📷 foto da conta</button>`;
+  }
+  /** pergunta ao banco se o evento já tem foto, e desenha */
+  async function carregaFoto() {
+    if (!groupId || !temMesa()) return;
+    const id = groupId;
+    if (!fotoDaConta || fotoDaConta.id !== id) {
+      fotoDaConta = undefined;
+      desenhaFoto();
+      try {
+        const r = await noBanco(`${DB}/fotos/${id}.json`, { cache: 'no-store' });
+        const v = r.ok ? await r.json() : null;
+        fotoDaConta = {
+          id,
+          url: typeof v === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(v) ? v : null,
+        };
+      } catch {
+        return;
+      }
+    }
+    desenhaFoto();
+  }
+  /** abre a câmera (ou a galeria), encolhe e sobe a foto @type {() => void} */
+  function tiraFoto() {
+    const id = groupId,
+      inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = 'image/*';
+    inp.onchange = async () => {
+      const arq = inp.files && inp.files[0];
+      if (!arq || !id) return;
+      try {
+        const url = await encolheFoto(arq);
+        const r = await noBanco(`${DB}/fotos/${id}.json`, { method: 'PUT', body: JSON.stringify(url) });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        fotoDaConta = { id, url };
+        desenhaFoto();
+        toast('Foto da conta guardada');
+      } catch {
+        toast('Não consegui guardar a foto');
+      }
+    };
+    inp.click();
+  }
+  /** a foto inteira, num cartão por cima do anotar */
+  function verFoto() {
+    const url = fotoDaConta && fotoDaConta.url;
+    if (!url) return;
+    overlay(
+      `<h2>Foto da conta</h2><div class="fotoGrande"><img src="${url}" alt="foto da conta"></div><div class="c voltar"><button id="fotoGrandeVoltar" class="ghost">voltar</button></div>`,
+    );
   }
   // #endregion
   // #region o anotar
@@ -2792,7 +2881,12 @@
       ? `<div class="c" style="text-transform:none;font-size:18px;line-height:1.4;margin:6px 0 8px">${natal() ? 'ho ho ho, racha a ceia.' : 'racha a conta do rolê.'}<br>sem app, sem cadastro.</div>
       ${estreia()}`
       : '';
-    const lista = evs.length ? `<div class="hr"></div><h2>*** Meus eventos ***</h2>${listaEventos(evs, true)}` : '';
+    // com a digital à mão, o título vira botão: abre o menuzinho de guardar e entrar com a digital
+    const titulo = temDigital()
+      ? `<h2><button type="button" id="evMenu" class="evMenu" aria-haspopup="true" aria-expanded="false" aria-controls="evMenuBox">*** Meus eventos <span class="seta" aria-hidden="true">▾</span> ***</button></h2>${menuDigital(evs.length > 0)}`
+      : '<h2>*** Meus eventos ***</h2>';
+    const lista =
+      evs.length || temDigital() ? `<div class="hr"></div>${titulo}${evs.length ? listaEventos(evs, true) : ''}` : '';
     overlay(
       `<div class="cordao" aria-hidden="true"></div><h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Criar evento'} ***</h2>${
         msg || !evs.length
@@ -2800,10 +2894,12 @@
           : ''
       }
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><span class="campoEx"><input id="gateCode" placeholder="ex: ${natal() ? 'amigo secreto, ceia' : 'praia, churras'}" required autocapitalize="none"><span class="exemplo" aria-hidden="true"></span></span><button class="small">${botao}</button></form>
-      <p id="gateErr" class="status err" style="margin:0"></p><div class="c" style="display:flex;justify-content:center;gap:8px"><button id="instalarGate" class="ico amb hidden">${BAIXAR_SVG} instalar</button>${
-        // quem testa tudo (o dono, com o ?testes) chega no admin pela tela inicial, ao lado do instalar
-        emTeste() && !aberto ? `<button id="adminBtn" class="ico amb">${CHAVE_SVG} admin</button>` : ''
-      }</div>${linhaDigital(evs.length > 0)}${aberto ? `<div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>` : ''}`,
+      <p id="gateErr" class="status err" style="margin:0"></p><div class="c" style="display:flex;justify-content:center;gap:8px"><button id="instalarGate" class="ico amb hidden">${BAIXAR_SVG} instalar</button></div>${
+        // o Fernando (o dono) chega no admin pela tela inicial, num botão maior e mais abaixo
+        souFernando() && !aberto
+          ? `<div class="c adminLinha"><button id="adminBtn" class="ico amb">${CHAVE_SVG} admin</button></div>`
+          : ''
+      }${aberto ? `<div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>` : ''}`,
       !aberto,
     );
     mostraInstalar();
@@ -3950,14 +4046,19 @@
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
       .replace(/=+$/, '');
-  /** a linha do cartão de Meus eventos: guardar só aparece com evento pra guardar */
-  const linhaDigital = (temEventos) =>
-    temDigital()
-      ? `<div class="c digital">${temEventos ? '<a class="link" id="digGuarda" role="button" tabindex="0">guardar com a digital</a> · ' : ''}<a class="link" id="digEntra" role="button" tabindex="0">entrar com a digital</a></div>`
-      : '';
+  /** o menuzinho do título de Meus eventos: guardar só aparece com evento pra guardar */
+  const menuDigital = (temEventos) =>
+    `<div class="menuDigital hidden" id="evMenuBox" role="group" aria-label="digital">${temEventos ? '<a class="link" id="digGuarda" role="button" tabindex="0">guardar com a digital</a>' : ''}<a class="link" id="digEntra" role="button" tabindex="0">entrar com a digital</a></div>`;
   function ligaDigital() {
     const g = $('#digGuarda'),
       e = $('#digEntra');
+    const m = $('#evMenu');
+    if (m)
+      m.onclick = () => {
+        const aberto = $('#evMenuBox').classList.toggle('hidden') === false;
+        m.setAttribute('aria-expanded', String(aberto));
+        m.classList.toggle('aberto', aberto);
+      };
     if (g) g.onclick = guardaDigital;
     if (e) e.onclick = entraDigital;
   }
@@ -4548,6 +4649,9 @@
     ['#contaCola', colaConta],
     ['[data-preco]', marcaPreco],
     ['#fotoUsar', usaFoto],
+    ['#fotoTira, #fotoTroca', tiraFoto],
+    ['#fotoVer', verFoto],
+    ['#fotoGrandeVoltar', closeOverlay],
     ['#fotoVoltar', closeOverlay],
     ['#splitSeg button', escolheAba],
     ['[data-resto]', poeResto],

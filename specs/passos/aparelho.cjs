@@ -57,6 +57,7 @@ const salaDe = (mundo, nome) => { const rooms = mundo.banco.arvore.rooms; return
 Given('que o {string} sumiu do banco', async ({ mundo }, nome) => { delete mundo.banco.arvore.rooms[salaDe(mundo, nome)]; });
 // os links de cada coisa em teste, que o aparelho guarda
 Given('que eu pedi pra testar a galera de sempre', async ({ mundo }) => { naGaveta(mundo, 'tolisa', { galeraOn: true }); });
+Given('que neste aparelho eu me chamo {string}', async ({ mundo }, nome) => { naGaveta(mundo, 'tolisa', { myName: nome }); });
 Given('que eu pedi pra testar tudo', async ({ mundo }) => { naGaveta(mundo, 'tolisa', { testesOn: true }); });
 Given('que eu pedi pra testar o modo mesa', async ({ mundo }) => { naGaveta(mundo, 'tolisa', { mesaOn: true }); });
 // o ?foto de antes do ?mesa: o aparelho que ligou por ele guardou o fotoOn

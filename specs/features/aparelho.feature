@@ -17,13 +17,15 @@ Funcionalidade: O que fica guardado no aparelho
     E eu toco no ✎
     Então o anotar oferece colar a conta
 
-  Cenário: quem testa tudo chega no admin pela tela inicial
-    Dado que eu pedi pra testar tudo
+  Cenário: o Fernando chega no admin pela tela inicial, sem pedir nada
+    Dado que neste aparelho eu me chamo "Fernando"
     E que eu abro o site sem evento
     Então a tela inicial tem o botão do admin
 
-  Cenário: sem pedir pra testar, a tela inicial não mostra o admin
-    Dado que eu abro o site sem evento
+  Cenário: quem não é o Fernando não vê o admin, nem testando tudo
+    Dado que eu pedi pra testar tudo
+    E que neste aparelho eu me chamo "Júlia"
+    E que eu abro o site sem evento
     Então a tela inicial não tem o botão do admin
 
   Cenário: quem já usava o site não perde quem é nem o segredo da chave

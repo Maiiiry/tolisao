@@ -32,9 +32,12 @@ When('eu abro o tô lisa pelo endereço de testar a digital', async ({ mundo }) 
   await mundo.p.waitForSelector('#gateCode');
 });
 
-When('eu guardo meus eventos na digital', async ({ mundo }) => { await mundo.p.getByRole('button', { name: 'guardar com a digital' }).click(); });
+// a digital mora no menuzinho do título "Meus eventos"
+const abreMenu = (p) => p.getByRole('button', { name: /Meus eventos/ }).click();
+When('eu guardo meus eventos na digital', async ({ mundo }) => { await abreMenu(mundo.p); await mundo.p.getByRole('button', { name: 'guardar com a digital' }).click(); });
 // sem tabindex o link nem pega o foco, e o Enter cai no vazio
 When('eu guardo meus eventos na digital pelo teclado', async ({ mundo }) => {
+  await abreMenu(mundo.p);
   const b = mundo.p.getByRole('button', { name: 'guardar com a digital' });
   await b.focus(); await expect(b).toBeFocused(); await mundo.p.keyboard.press('Enter');
 });
@@ -49,6 +52,7 @@ When('eu entro com a digital num celular novo', async ({ mundo }) => {
   await mundo.abre({ semEvento: true });
   await mundo.p.waitForSelector('#gateCode');
   await expect(mundo.p.locator('#overlayBox .ev')).toHaveCount(0);
+  await abreMenu(mundo.p);
   await mundo.p.getByRole('button', { name: 'entrar com a digital' }).click();
 });
 
@@ -60,10 +64,11 @@ Then('o {string} volta pra lista, comigo como {word}', async ({ mundo }, nome, q
 
 Then('o cartão não oferece a digital', async ({ mundo }) => {
   await expect(mundo.p.locator('#overlayBox h2').first()).toBeVisible();
-  await expect(mundo.p.locator('#overlayBox .digital')).toHaveCount(0);
+  await expect(mundo.p.getByRole('button', { name: /Meus eventos/ })).toHaveCount(0);
 });
 Then('o cartão oferece {string}', async ({ mundo }, txt) => {
-  await expect(mundo.p.locator('#overlayBox .digital').getByRole('button', { name: txt })).toBeVisible();
+  await abreMenu(mundo.p);
+  await expect(mundo.p.getByRole('button', { name: txt })).toBeVisible();
 });
 
 // limpar o navegador: o aparelho esquece tudo, o tok do pix junto, mas a passkey fica no celular.

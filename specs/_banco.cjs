@@ -2,7 +2,7 @@ const { createHash } = require('crypto');
 const sha256 = t => createHash('sha256').update(t).digest('hex');
 
 class Banco {
-  constructor(op = {}) { this.arvore = { rooms: {}, pix: {}, visitas: {} }; this.listagens = 0; this.atrasoPix = op.atrasoPix || 0; this.congelado = !!op.congelado; }
+  constructor(op = {}) { this.arvore = { rooms: {}, pix: {}, fotos: {}, visitas: {} }; this.listagens = 0; this.atrasoPix = op.atrasoPix || 0; this.congelado = !!op.congelado; }
   sala(dados) { const id = sha256(dados.name); this.arvore.rooms[id] = dados; return id; }
   pix(sala, pessoa, key) { (this.arvore.pix[sala] ||= {})[pessoa] = { key, tok: 'tokdeoutroaparelho' }; }
   // a gravação da sala só volta quando o passo soltar: espera por estado, e não um atraso fixo que
@@ -47,6 +47,14 @@ class Banco {
     }
     // a rede engasgou no bar: o pedido do evento fica pendurado, sem resposta e sem erro
     if (this.mudo && partes[0] === 'rooms') { this.segurados = (this.segurados || 0) + 1; return new Promise(() => {}); }
+    // fotos/<sala>: a foto da conta, um JPEG em texto (o .validate do fotos/$room: sala é hash, jpeg base64 até 400 mil)
+    if (partes[0] === 'fotos' && partes.length === 2) {
+      if (m === 'GET') return json(200, this.arvore.fotos[partes[1]] ?? null);
+      const v = JSON.parse(texto || 'null');
+      if (m !== 'PUT' || !/^[0-9a-f]{64}$/.test(partes[1]) || typeof v !== 'string' || v.length > 400000
+        || !/^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(v)) return nega();
+      this.arvore.fotos[partes[1]] = v; return json(200, v);
+    }
     if (partes[0] !== 'rooms' || partes.length < 2) { if (m === 'GET') this.listagens++; return nega(); }
     // o ETag como o Firebase: só vem se pedir, e o PUT com if-match velho leva 412 com a sala atual
     const tag = () => { const v = this.pega(partes); return v == null ? 'null_etag' : sha256(JSON.stringify(v)); };

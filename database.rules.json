@@ -70,6 +70,13 @@
         }
       }
     },
+    "fotos": {
+      "$room": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$room.matches(/^[0-9a-f]{64}$/) && newData.isString() && newData.val().matches(/^data:image\\/jpeg;base64,[A-Za-z0-9+\\/=]+$/) && newData.val().length <= 400000"
+      }
+    },
     "visitas": {
       "$dia": {
         ".write": "newData.exists()",

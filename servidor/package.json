@@ -1,13 +1,14 @@
 {
   "name": "tolisa-api",
   "private": true,
-  "description": "A API do tô lisa (Worker da Cloudflare). O wrangler é só pra subir: o Worker não tem dependência.",
+  "description": "A API do tô lisa (Worker da Cloudflare). O Worker não tem dependência: o wrangler sobe e o cucumber testa, os dois só em desenvolvimento.",
   "type": "module",
   "scripts": {
-    "test": "node --test test/*.test.js",
+    "test": "cucumber-js",
     "deploy": "wrangler deploy"
   },
   "devDependencies": {
+    "@cucumber/cucumber": "^13.3.0",
     "wrangler": "^4.158.0"
   }
 }

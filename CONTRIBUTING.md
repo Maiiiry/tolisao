@@ -28,7 +28,7 @@ os testes são cucumber em português: a especificação fica em `specs/features
 ## não rola
 
 - **dependência nova no site.** o navegador não tem? a gente escreve (por isso existem `crc16`, `code128Widths` e o recibo em canvas). ferramenta de desenvolvimento pode.
-- **dependência na API além do `wrangler`.** o `servidor/` é um Worker da Cloudflare em JS puro, testado com `cd servidor && npm test`; sobe sozinho pelo `servidor.yml` quando muda na `main`.
+- **dependência na API além do `wrangler` e do cucumber (só pra testar).** o `servidor/` é um Worker da Cloudflare em JS puro, testado em cucumber (`cd servidor && npm ci && npm test`, features em português como as do site); sobe sozinho pelo `servidor.yml` quando muda na `main`. o que ele faz está em `servidor/README.md`.
 - **build, bundler, framework.** tipo é JSDoc com `// @ts-check`.
 - **reescrita grande.** edição pequena em `app.js`/`style.css`. o formato é do prettier (`npm run formata`), não se discute.
 - **inglês na tela.** o rodapé fala como dona de boteco baiana.

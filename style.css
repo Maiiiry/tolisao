@@ -597,6 +597,8 @@ button.edita{border-color:transparent;background:transparent;text-decoration:und
 @media (min-width:900px) and (min-height:600px){html{zoom:1.5}}
 #boot{display:none;margin:14px 0 2px} #boot .spin{width:22px;height:22px;border-width:3px}
 #app.loading>*:not(h1):not(#boot):not(.cordao){display:none} #app.loading #boot{display:block} #app.loading.nospin{display:none} #app.loading~.fab{display:none}
+/* a tela dos eventos com um evento aberto: a nota fica no lugar (sem recomeçar a impressora ao voltar), só não aparece */
+#app.fora,#app.fora~.fab{visibility:hidden}
 @keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 /* a nota sai da impressora: o papel cresce a partir do carregando (--alto, a altura dele, medida no app.js) e cada
    bloco cai no lugar, um depois do outro, com um tranquinho. O corte não fica (backwards): a ficha voa pra fora do papel */

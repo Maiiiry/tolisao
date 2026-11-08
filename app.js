@@ -2451,6 +2451,7 @@
     apagaTela();
     $('#overlay').classList.add('hidden');
     $('#overlay').classList.remove('ensina', 'canto', 'meio', 'cima');
+    $('#app').classList.remove('fora');
     const de = overlayDeQuem;
     overlayDeQuem = null;
     voltaFoco(de);
@@ -2465,6 +2466,10 @@
   };
   $('#overlay').addEventListener('click', (ev) => {
     if (ev.target.id === 'overlay') fechaPorFora();
+  });
+  // o voltar do Android/navegador fecha a tela dos eventos (o showGate com evento aberto) em vez de sair do app
+  addEventListener('popstate', () => {
+    if ($('#app').classList.contains('fora')) closeOverlay();
   });
 
   /** `perigo` pinta o botão de vermelho: o que não tem volta não pode parecer um voltar */
@@ -2772,8 +2777,8 @@
       f.addEventListener('animationend', () => f.remove(), { once: true });
     }
   }
-  /** a tela inicial e o cartão do evento são o mesmo cartão: Meus eventos com ✕ e o campo pra outro.
-   * Sem evento aberto ele é a tela (não fecha); com evento aberto (toque no nome dele) ganha o voltar,
+  /** a tela inicial: Meus eventos com ✕ e o campo pra outro. Com evento aberto (toque no nome dele) é a mesma
+   * tela, sem a nota atrás e sem a estreia (a chuva e a comandinha são de quem chega), e ganha o voltar,
    * e o evento aberto vem marcado na lista. O link e o QR ficam no botão de compartilhar */
   function showGate(msg) {
     const aberto = !!groupId;
@@ -2802,7 +2807,12 @@
       !aberto,
     );
     mostraInstalar();
-    if (aberto) $('#evBack').onclick = closeOverlay;
+    if (aberto) {
+      // é uma tela, não um cartão: a nota some de trás (o .fora) e o voltar do navegador volta pro evento
+      $('#app').classList.add('fora');
+      if (!history.state?.gate) history.pushState({ gate: 1 }, '');
+      $('#evBack').onclick = () => (history.state?.gate ? history.back() : closeOverlay());
+    }
     if ($('#adminBtn')) $('#adminBtn').onclick = () => location.assign('admin/');
     if (!aberto) digitaTitulo($('#tituloGate'), chegou ? fichaDoPonto : undefined, chegou ? rodaComanda : undefined);
     if (chegou) chove();

@@ -15,11 +15,16 @@ Funcionalidade: O que fica guardado no aparelho
     Dado que eu pedi pra testar tudo
     Quando eu abro o evento como Lia
     E eu toco no ✎
-    Então o anotar oferece colar a conta
+    Então o anotar oferece a foto da conta
 
   Cenário: o Fernando chega no admin pela tela inicial, sem pedir nada
     Dado que neste aparelho eu me chamo "Fernando"
     E que eu abro o site sem evento
+    Então a tela inicial tem o botão do admin
+
+  Cenário: o Fernando também chega no admin pela tela de outro evento
+    Quando eu abro o evento como Fernando
+    E eu toco no nome do evento
     Então a tela inicial tem o botão do admin
 
   Cenário: quem não é o Fernando não vê o admin, nem testando tudo

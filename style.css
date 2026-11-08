@@ -186,20 +186,20 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 /* apertada, a moldura vira a cor das réguas: o contorno preto pesava no meio da lista */
 #itemsHead.aberto:before{box-shadow:inset 2px 2px 0 rgba(0,0,0,.14);background:var(--afundado);border-color:var(--rule)}
 @media (prefers-reduced-motion:reduce){#itemsHead,#itemsHead:before{transition:none}}
-/* a lista estica e encolhe (o height:auto anima com o interpolate-size; o display espera o fim pra sumir) e, no toque
+/* a lista estica e encolhe (no app.js, só até o pé da tela; o .fechando segura o display até o fim, e a margem
+   encolhe junto, senão os 8px sumiam de uma vez no fim) e, no toque
    que abre, os itens saem de trás da linha em leque, como os quitados antigos: todos do topo da lista (o --topo de cada
    um, medido no toque; as linhas têm alturas diferentes) e o de cima por cima. O .leque é do toque, não de cada render:
    um sync com a lista aberta não abre o leque de novo. As outras opções ficaram em docs/animacoes.md */
-#itemsBody{interpolate-size:allow-keywords;overflow:clip;height:auto;transition:height .4s cubic-bezier(.3,.6,.4,1),display .4s allow-discrete}
-#itemsBody.hidden{height:0}
-@starting-style{#itemsBody:not(.hidden){height:0}}
+#itemsBody{overflow:clip;margin-top:8px}
+#itemsBody.hidden.fechando{display:block !important;pointer-events:none}
 @keyframes lequeItens{from{transform:translateY(calc(-1 * var(--topo,0px))) scale(.96)}to{transform:none}}
-#itemsBody.leque #expenses>*{position:relative;background:var(--paper);animation:lequeItens .45s cubic-bezier(.2,.8,.3,1) both}
+#itemsBody.leque #expenses>.vem{position:relative;background:var(--paper);animation:lequeItens .45s cubic-bezier(.2,.8,.3,1) both}
 #itemsBody.leque #expenses>:nth-child(1){z-index:9}#itemsBody.leque #expenses>:nth-child(2){z-index:8}
 #itemsBody.leque #expenses>:nth-child(3){z-index:7}#itemsBody.leque #expenses>:nth-child(4){z-index:6}
 #itemsBody.leque #expenses>:nth-child(5){z-index:5}#itemsBody.leque #expenses>:nth-child(6){z-index:4}
 #itemsBody.leque #expenses>:nth-child(n+7){z-index:3}
-@media (prefers-reduced-motion:reduce){#itemsCaret span,#itemsHead.pisca,#itemsHead.pisca:before,#itemsHead.pisca #itemsCaret span,#itemsHead.pisca #itemsCaret path,#itemsHead.suave #itemsCaret,#itemsBody,#itemsBody.leque #expenses>*{transition:none;animation:none}}
+@media (prefers-reduced-motion:reduce){#itemsCaret span,#itemsHead.pisca,#itemsHead.pisca:before,#itemsHead.pisca #itemsCaret span,#itemsHead.pisca #itemsCaret path,#itemsHead.suave #itemsCaret,#itemsBody.leque #expenses>*{transition:none;animation:none}}
 /* a linha dos itens é um botão com moldura: as réguas em volta dela sobravam. Ficam só o espaço */
 #mine>.hr,#itemsSec>.hr{border-top-color:transparent}
 .row.total{font-size:24px;margin-top:10px} .row.total .v{font-size:24px}

@@ -22,6 +22,11 @@ Funcionalidade: O que fica guardado no aparelho
     E que eu abro o site sem evento
     Então a tela inicial tem o botão do admin
 
+  Cenário: o Fernando também chega no admin pela tela de outro evento
+    Quando eu abro o evento como Fernando
+    E eu toco no nome do evento
+    Então a tela inicial tem o botão do admin
+
   Cenário: quem não é o Fernando não vê o admin, nem testando tudo
     Dado que eu pedi pra testar tudo
     E que neste aparelho eu me chamo "Júlia"

@@ -2896,8 +2896,8 @@
       }
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><span class="campoEx"><input id="gateCode" placeholder="ex: ${natal() ? 'amigo secreto, ceia' : 'praia, churras'}" required autocapitalize="none"><span class="exemplo" aria-hidden="true"></span></span><button class="small">${botao}</button></form>
       <p id="gateErr" class="status err" style="margin:0"></p><div class="c" style="display:flex;justify-content:center;gap:8px"><button id="instalarGate" class="ico amb hidden">${BAIXAR_SVG} instalar</button></div>${
-        // o Fernando (o dono) chega no admin pela tela inicial, num botão maior e mais abaixo
-        souFernando() && !aberto
+        // o Fernando (o dono) chega no admin pela tela inicial e pela de outro evento, num botão maior e mais abaixo
+        souFernando()
           ? `<div class="c adminLinha"><button id="adminBtn" class="ico amb">${CHAVE_SVG} admin</button></div>`
           : ''
       }${aberto ? `<div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>` : ''}`,

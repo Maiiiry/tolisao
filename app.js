@@ -4100,7 +4100,9 @@
   $('#itemsHead').onclick = () => {
     itemsOpen = !itemsOpen;
     if (itemsOpen) setDevice('itemsOpened', true);
-    render();
+    // só a lista muda: refazer a nota inteira (render) travava o toque no celular
+    agendaConviteItens(temMe());
+    renderItens();
     // o leque é só do toque que abre (o style.css): tira no fim, senão o próximo render abria de novo
     const corpo = $('#itemsBody'),
       lista = $('#expenses');

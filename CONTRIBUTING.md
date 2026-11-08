@@ -54,7 +54,7 @@ tamanho real, 390 de largura. detalhes em `.claude/skills/preview/SKILL.md`.
 
 mexeu em cor? `npm run contraste` lista, tema por tema e janela por janela, o texto abaixo de 4,5:1 e a borda ou ícone de botão abaixo de 3:1 (hover e `:active` inclusos). não é teste, não roda no CI.
 
-conta de bar nova? a foto entra em `specs/contas/`, com o gabarito e, se der, o texto que o celular copiou dela (como, no `specs/contas/README.md`): é a base realista do texto da conta.
+conta de bar nova? a foto entra em `specs/contas/`, com o gabarito (como, no `specs/contas/README.md`): é a base realista pra testar a foto da conta.
 
 ## commit
 

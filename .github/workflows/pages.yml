@@ -40,7 +40,7 @@ jobs:
         # o servidor/ sobe pela Cloudflare (servidor.yml): no Pages ia só ocupar a rota
         run: rm -rf servidor
       - name: Tira as fotos de conta
-        # as contas de verdade, a base pra testar o texto da conta: uns MB por foto que ninguém abre no site
+        # as contas de verdade, a base pra testar a foto da conta: uns MB por foto que ninguém abre no site
         run: rm -rf specs/contas
       # um artefato por tentativa: no re-run (o Pages às vezes dá 500) o da tentativa anterior
       # continua no mesmo run, e com dois de mesmo nome o deploy-pages se recusa

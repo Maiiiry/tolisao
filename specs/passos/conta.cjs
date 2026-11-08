@@ -12,11 +12,11 @@ When('eu tiro a foto da conta', async ({ mundo }) => {
   const [arq] = await Promise.all([mundo.p.waitForEvent('filechooser'), mundo.p.getByRole('button', { name: /foto da conta/ }).click()]);
   await arq.setFiles({ name: 'conta.png', mimeType: 'image/png', buffer: PNG });
 });
-When('eu abro a foto da conta', async ({ mundo }) => { await mundo.p.getByRole('button', { name: 'ver a foto da conta' }).click(); });
+When('eu abro a foto da conta', async ({ mundo }) => { await mundo.p.getByRole('button', { name: 'ampliar a foto' }).click(); });
 When('eu troco a foto da conta', async ({ mundo }) => {
-  const [arq] = await Promise.all([mundo.p.waitForEvent('filechooser'), mundo.p.getByRole('button', { name: 'trocar foto' }).click()]);
+  const [arq] = await Promise.all([mundo.p.waitForEvent('filechooser'), mundo.p.getByRole('button', { name: 'trocar a foto' }).click()]);
   await arq.setFiles({ name: 'conta2.png', mimeType: 'image/png', buffer: PNG });
 });
-Then('o anotar não oferece trocar a foto', async ({ mundo }) => { await expect(mundo.p.getByRole('button', { name: 'trocar foto' })).toHaveCount(0); });
-Then('a foto da conta aberta oferece trocar a foto', async ({ mundo }) => { await expect(mundo.p.getByRole('button', { name: 'trocar foto' })).toBeVisible(); });
+Then('a foto da conta aparece ampliada', async ({ mundo }) => { await expect(mundo.p.locator('.fotoGrande img')).toBeVisible(); });
+When('eu volto da foto ampliada', async ({ mundo }) => { await mundo.p.click('#fotoGrandeVoltar'); });
 Then('o anotar mostra a foto da conta', async ({ mundo }) => { await expect(mundo.p.locator('#fotoConta img')).toBeVisible(); });

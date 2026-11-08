@@ -116,12 +116,12 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 .fotoConta{display:flex;align-items:center;gap:12px;margin:8px 0}
 .fotoConta.hidden{display:none}
 /* com foto, ela fica numa faixa fixa no topo do anotar, de ponta a ponta: a pessoa rola a conta por dentro da faixa
-   enquanto digita embaixo, e toca pra ampliar */
+   enquanto digita embaixo, com os botões de ampliar e trocar */
 .fotoConta.tem:not(.hidden){display:block;position:sticky;top:-16px;z-index:3;margin:0 -20px 12px;background:var(--paper);border-bottom:2px solid var(--ink)}
 .fotoFaixa{height:min(190px,26vh);overflow-y:auto;overscroll-behavior:contain}
-.miniFoto{display:block;padding:0;border:0;background:none;width:100%;box-shadow:none}
-.miniFoto img{width:100%;height:auto;display:block}
-.fotoLupa{position:absolute;right:8px;top:8px;pointer-events:none;background:var(--paper);color:var(--ink);border:2px solid var(--ink);padding:0 6px;font-size:20px;line-height:1.2}
+.fotoFaixa img{width:100%;height:auto;display:block}
+.fotoBotoes{position:absolute;right:8px;top:8px;display:flex;gap:6px}
+.fotoBotoes .ico{background:var(--paper);box-shadow:2px 2px 0 var(--sombra)}
 .fotoGrande{max-height:70vh;overflow:auto;margin:8px 0}
 .fotoGrande img{width:100%;display:block}
 .hr{border-top:2px dashed var(--rule);margin:12px 0}
@@ -543,22 +543,6 @@ button.edita{border-color:transparent;background:transparent;text-decoration:und
 #expenses .item.open .row .l{white-space:normal}
 #expenses .day{margin:10px 0 0}
 #amount{font-size:30px;letter-spacing:1px}
-/* o texto da conta (sem entrada no anotar por enquanto): o cartão onde se cola o texto que o celular leu da
-   foto. Cada linha com preço vira um botão de linha da nota; o tocado fica marcado e soma embaixo */
-.comoCopiar{margin:4px 0 10px;font-size:17px;text-transform:none;color:var(--ink2)}
-.comoCopiar summary{cursor:pointer;text-decoration:underline;text-underline-offset:3px}
-.comoCopiar ol{margin:6px 0 0;padding-left:22px}
-.comoCopiar li{margin:3px 0}
-#contaTexto{width:100%;font:inherit;font-size:17px;line-height:1.25;padding:8px;border:2px solid var(--ink);background:var(--card);color:var(--ink);resize:vertical;text-transform:none}
-.precosConta{display:grid;gap:4px;margin-top:10px;max-height:44vh;overflow:auto}
-.precoConta{display:flex;align-items:baseline;gap:6px;width:100%;padding:6px 8px;text-align:left;text-transform:none;box-shadow:none;border:2px dashed var(--rule);background:none;color:var(--ink);font-size:18px}
-.precoConta .l{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.precoConta .d{flex:1;border-bottom:2px dotted var(--rule);min-width:12px}
-.precoConta .v{white-space:nowrap}
-.precoConta.sim{border-style:solid;border-color:var(--ink);background:var(--afundado);box-shadow:2px 2px 0 var(--sombra)}
-.somaFoto{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:10px 0}
-.somaFoto .fita{font-size:16px;color:var(--muted);letter-spacing:.5px;overflow-wrap:anywhere}
-.somaFoto b{font-weight:400;font-size:28px;white-space:nowrap}
 /* o quanto pagou do Quitar?: o mesmo campo do valor do gasto, no verde de quem recebe */
 .quitaValor{display:flex;width:max-content;align-items:baseline;gap:6px;margin:10px auto 0;padding:0 4px 4px;font-size:30px;color:var(--green);border-bottom:2px solid var(--green)}
 #quitaValor{width:5ch;flex:none;padding:0;border:0;text-align:left;font-size:30px;color:var(--green)}

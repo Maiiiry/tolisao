@@ -102,6 +102,9 @@ Then('o cartão mostra:', async ({ mundo }, txt) => {
   // o R$ vem colado no valor por um espaço que não quebra; no .feature ele é um espaço comum
   await expect.poll(async () => (await mundo.linhas('#overlayBox')).map(l => l.replace(/\u00a0/g, ' '))).toEqual(txt.split('\n').map(l => l.trim()).filter(Boolean));
 });
+Then('a nota não aparece atrás', async ({ mundo }) => { await expect(mundo.p.locator('#app')).toBeHidden(); });
+Then('a nota volta', async ({ mundo }) => { await expect(mundo.p.locator('#app')).toBeVisible(); });
+When('eu aperto o voltar do navegador', async ({ mundo }) => { await mundo.p.goBack(); });
 When('eu toco em voltar', async ({ mundo }) => { await mundo.p.click('#evBack'); });
 When('eu toco em compartilhar', async ({ mundo }) => { await mundo.p.click('#waBtn'); });
 When('eu mando pro grupo todo', async ({ mundo }) => { await mundo.p.click('[data-link-pra=""]'); });

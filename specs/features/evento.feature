@@ -44,6 +44,14 @@ Funcionalidade: Entrar no evento
     Quando eu toco fora do cartão
     Então o cartão do código volta com "churras-k7f3q9" escrito
 
+  Cenário: o voltar do celular fecha a tela dos eventos, em vez de sair do tô lisa
+    Dado o evento "bailedamada" com Fernando, Júlia e Lia
+    Quando eu abro o evento como Lia
+    E eu toco no nome do evento
+    E eu aperto o voltar do navegador
+    Então o cartão fecha
+    E a nota volta
+
   Cenário: Esc fecha o cartão, como tocar fora
     No computador, Esc é o gesto que todo mundo tenta pra fechar.
     Dado o evento "bailedamada" com Fernando, Júlia e Lia
@@ -234,8 +242,10 @@ Funcionalidade: Entrar no evento
       BORA
       VOLTAR
       """
+    E a nota não aparece atrás
     Quando eu toco em voltar
     Então o cartão fecha
+    E a nota volta
     Quando eu toco no meu nome
     Então o cartão de quem é você já vem com Lia escolhida
     E o cartão de quem é você não tem botão de sair

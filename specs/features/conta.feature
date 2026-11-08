@@ -89,3 +89,16 @@ Funcionalidade: Texto da conta
     Quando eu abro o evento como Beto em outro aparelho
     E eu toco no ✎
     Então o anotar mostra a foto da conta
+
+  Cenário: trocar a foto só aparece quando a foto está aberta
+    Com a foto ao lado, o anotar fica limpo: o trocar só faz sentido pra quem olhou a foto e viu que não serve.
+    Dado que eu pedi pra testar tudo
+    Quando eu abro o evento como Ana
+    E eu toco no ✎
+    E eu tiro a foto da conta
+    Então o anotar não oferece trocar a foto
+    Quando eu abro a foto da conta
+    Então a foto da conta aberta oferece trocar a foto
+    Quando eu troco a foto da conta
+    Então aparece o aviso "Foto da conta guardada"
+    E o anotar mostra a foto da conta

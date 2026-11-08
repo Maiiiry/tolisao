@@ -2308,14 +2308,14 @@
     }
     throw new Error('foto grande demais');
   }
-  /** a faixa do anotar: o botão de tirar a foto, ou a miniatura dela (toque amplia) e o trocar */
+  /** a faixa do anotar: o botão de tirar a foto, ou a miniatura dela (toque amplia; o trocar fica no cartão ampliado) */
   function desenhaFoto() {
     const box = $('#fotoConta');
     if (!box) return;
     box.classList.toggle('hidden', !temMesa());
     const url = fotoDaConta && fotoDaConta.id === groupId ? fotoDaConta.url : null;
     box.innerHTML = url
-      ? `<button type="button" class="miniFoto" id="fotoVer" aria-label="ver a foto da conta"><img src="${url}" alt="foto da conta"></button><button type="button" class="ico amb" id="fotoTroca">trocar foto</button>`
+      ? `<button type="button" class="miniFoto" id="fotoVer" aria-label="ver a foto da conta"><img src="${url}" alt="foto da conta"></button>`
       : `<button type="button" class="ico amb" id="fotoTira">📷 foto da conta</button>`;
   }
   /** pergunta ao banco se o evento já tem foto, e desenha */
@@ -2352,6 +2352,8 @@
         const r = await noBanco(`${DB}/fotos/${id}.json`, { method: 'PUT', body: JSON.stringify(url) });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         fotoDaConta = { id, url };
+        // trocou pela foto ampliada: fecha o cartão, que ainda mostraria a antiga
+        if ($('#fotoTroca')) closeOverlay();
         desenhaFoto();
         toast('Foto da conta guardada');
       } catch {
@@ -2365,7 +2367,7 @@
     const url = fotoDaConta && fotoDaConta.url;
     if (!url) return;
     overlay(
-      `<h2>Foto da conta</h2><div class="fotoGrande"><img src="${url}" alt="foto da conta"></div><div class="c voltar"><button id="fotoGrandeVoltar" class="ghost">voltar</button></div>`,
+      `<h2>Foto da conta</h2><div class="fotoGrande"><img src="${url}" alt="foto da conta"></div><div class="c voltar"><button id="fotoTroca" class="ico amb">trocar foto</button> <button id="fotoGrandeVoltar" class="ghost">voltar</button></div>`,
     );
   }
   // #endregion

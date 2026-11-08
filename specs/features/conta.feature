@@ -25,8 +25,7 @@ Funcionalidade: Foto da conta
     Quando eu abro o evento como Ana
     E eu toco no ✎
     E eu tiro a foto da conta
-    Então aparece o aviso "Foto da conta guardada"
-    E o anotar mostra a foto da conta
+    Então o anotar mostra a foto da conta
     Quando eu abro o evento como Beto em outro aparelho
     E eu toco no ✎
     Então o anotar mostra a foto da conta
@@ -41,8 +40,7 @@ Funcionalidade: Foto da conta
     Quando eu abro a foto da conta
     Então a foto da conta aberta oferece trocar a foto
     Quando eu troco a foto da conta
-    Então aparece o aviso "Foto da conta guardada"
-    E o anotar mostra a foto da conta
+    Então o anotar mostra a foto da conta
 
   Cenário: a foto fica à vista no topo enquanto o anotar rola
     Num celular pequeno o formulário não cabe de uma vez: a foto fica presa no topo, pra pessoa digitar os itens olhando a conta.

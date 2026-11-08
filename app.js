@@ -2355,7 +2355,6 @@
         // trocou pela foto ampliada: fecha o cartão, que ainda mostraria a antiga
         if ($('#fotoTroca')) closeOverlay();
         desenhaFoto();
-        toast('Foto da conta guardada');
       } catch {
         toast('Não consegui guardar a foto');
       }

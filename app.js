@@ -108,15 +108,14 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, myName, pixKey, pixName, passkeyOn, passkeyId, pixDigital, avisoSim, galeraOn, mesaOn, contaColou, testesOn, tema, naoConta }
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, myName, pixKey, pixName, passkeyOn, passkeyId, pixDigital, avisoSim, galeraOn, mesaOn, contaColou, testesOn, tema }
   //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok; pixName: de quem é ela;
   //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista; pixDigital: o id da passkey do pix, ou false se a digital daqui não tem PRF;
   //                  avisoSim: já disse sim ao 🔔 uma vez, os outros eventos ligam sozinhos;
   //                  galeraOn: a galera de sempre no Quem vai?, pelo ?galera; mesaOn: o modo mesa (o texto da conta), pelo ?mesa;
   //                  contaColou: já colou uma conta, o passo a passo de copiar o texto vem fechado;
   //                  testesOn: tudo que está em teste de uma vez, pelo ?testes;
-  //                  tema: o tema escolhido no pé da nota ('papel' é o papel; sem ele, vale o TEMA);
-  //                  naoConta: este aparelho fica fora das visitas, pelo ?naoconta (o do dono))
+  //                  tema: o tema escolhido no pé da nota ('papel' é o papel; sem ele, vale o TEMA))
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
   //                  pushTok, pushOn, pushTry, charged, naoSou }  (naoSou: a pessoa que eu disse que não sou, pra não perguntar de novo; pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso;
   //                  pushTry: pra quem o aviso já tentou ligar sozinho, pra não insistir a cada render;
@@ -204,11 +203,6 @@
   setDevice('visits', visitas);
   // aparelhos por dia: um +1 no banco, que ninguém lê (só o dono, no console). O dia é o de Brasília (2026-10-06)
   const hojeBR = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
-  // o aparelho do dono não conta: abrir uma vez com ?naoconta tira ele (?naoconta=0 põe de volta)
-  {
-    const q = new URLSearchParams(location.search);
-    if (q.has('naoconta')) setDevice('naoConta', q.get('naoconta') === '0' ? undefined : true);
-  }
   // ?testes liga de uma vez tudo que está em teste (o modo mesa, a galera de sempre e a digital) e fica lembrado;
   // ?testes=0 desliga. O link de cada um continua valendo sozinho
   {
@@ -216,10 +210,17 @@
     if (q.has('testes')) setDevice('testesOn', q.get('testes') === '0' ? undefined : true);
   }
   const emTeste = () => device().testesOn === true;
-  // o dono: aparelho em que o último nome que escolhi foi Fernando ganha o admin, sem flag (a chave do painel é que protege)
-  const souFernando = () => typeof device().myName === 'string' && buscaNome(device().myName) === 'fernando';
-  // soma 1 em visitas/<dia> no banco, uma vez por aparelho por dia; o dono lê no console
-  if (!LOCAL && DB && device().naoConta !== true && device().countedDay !== hojeBR)
+  // o dono: aparelho em que o último nome que escolhi foi Fernando ganha o admin e fica fora das visitas, sem flag (a chave
+  // do painel é que protege). Roda já no começo, antes do buscaNome existir: por isso tira o acento aqui mesmo
+  const souFernando = () =>
+    typeof device().myName === 'string' &&
+    device()
+      .myName.toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim() === 'fernando';
+  // soma 1 em visitas/<dia> no banco, uma vez por aparelho por dia; o dono lê no admin. O Fernando não conta
+  if (!LOCAL && DB && !souFernando() && device().countedDay !== hojeBR)
     fetch(`${DB}/visitas/${hojeBR}.json?print=silent`, {
       method: 'PUT',
       body: '{".sv":{"increment":1}}',

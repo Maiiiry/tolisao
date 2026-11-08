@@ -95,7 +95,7 @@
       el(
         'div',
         'c muted nota',
-        'aparelhos por dia: quem limpa o navegador conta de novo, e quem abre com ?naoconta não conta.',
+        'aparelhos por dia: quem limpa o navegador conta de novo, e o aparelho em que o último nome foi Fernando (o dono) não conta.',
       ),
     );
   }

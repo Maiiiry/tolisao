@@ -41,8 +41,8 @@
   // a galera de sempre: no Quem vai?, quem já rachou comigo em outros eventos vem num toque, a mesma pessoa
   // (o mesmo id). Desligada pra todo mundo. Liga no aparelho com ?galera (fica lembrado; ?galera=0 desliga)
   const GALERA = false;
-  // o modo mesa, a conta do restaurante: por enquanto é a foto da conta no anotar, de referência pra digitar os
-  // itens. Desligado pra todo mundo. Liga no aparelho com ?mesa
+  // o modo mesa, a conta do restaurante: por enquanto é a foto da conta, de referência pra digitar os itens (saiu do
+  // anotar, ficou feia lá; o lugar novo está em discussão, o motor ficou). Desligado pra todo mundo. Liga no aparelho com ?mesa
   // (fica lembrado; ?mesa=0 desliga). O que vier pra mesa (dividir sem ninguém ter pago) entra atrás desta mesma flag
   const MESA = false;
   // os temas (#285): quem nunca escolheu fica no papel (TEMA vazio). O "tema: papel" do pé da nota troca a cada toque,
@@ -2120,7 +2120,6 @@
       prevPayer = payerSel.value || me;
     payerSel.innerHTML = state.people.map((p) => `<option value="${p.id}">${esc(p.name)} pagou</option>`).join('');
     if (state.people.some((p) => p.id === prevPayer)) payerSel.value = prevPayer;
-    carregaFoto();
     const prev = inputs('#splitChips input');
     const known = new Set(prev.map((i) => i.value)),
       checked = new Set(prev.filter((i) => i.checked).map((i) => i.value));
@@ -2283,7 +2282,8 @@
     $('#total').innerHTML = valorHtml(items.reduce((a, e) => a + centavos(e), 0));
   }
 
-  // a foto da conta, de referência: a pessoa tira a foto no anotar e fica com ela ao lado enquanto digita os itens. Vai pro
+  // a foto da conta, de referência: a pessoa tira a foto e fica com ela ao lado enquanto digita os itens. Saiu do anotar
+  // (ficou feia lá) e espera o lugar novo: sem o #fotoConta na página, nada aparece. Vai pro
   // banco (fotos/<evento>), um JPEG em texto de até ~400 mil caracteres: o evento todo vê, e o `rooms` não engorda
   const FOTO_LADO = 1400; // o maior lado, em pixels: dá pra ler a conta e a foto continua leve
   const FOTO_MAX = 400000; // o mesmo teto do .validate de fotos/$room
@@ -2308,7 +2308,7 @@
     }
     throw new Error('foto grande demais');
   }
-  /** a faixa do anotar: o botão de tirar a foto, ou a foto numa faixa fixa no topo, que rola por dentro, com os botões de ampliar e trocar */
+  /** a faixa da foto (no #fotoConta): o botão de tirar a foto, ou a foto numa faixa fixa no topo, que rola por dentro, com os botões de ampliar e trocar */
   function desenhaFoto() {
     const box = $('#fotoConta');
     if (!box) return;

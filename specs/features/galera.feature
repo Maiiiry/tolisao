@@ -15,6 +15,14 @@ Funcionalidade: A galera de sempre
     Quando eu crio o evento "praia"
     Então o Quem vai? não mostra a galera de sempre
 
+  Cenário: pedir pra testar tudo liga de uma vez o que está em teste
+    Quem testa não decora um link por função: um só liga todas, e fica lembrado no aparelho.
+    Dado que eu pedi pra testar tudo
+    E que eu abro o site sem evento
+    Quando eu crio o evento "praia"
+    E eu começo a escrever "cha" no Quem vai?
+    Então a galera de sempre é Charles
+
   Regra: pra quem pediu pra testar, a galera dos meus eventos vem num toque
 
     Contexto:

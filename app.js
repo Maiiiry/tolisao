@@ -41,8 +41,8 @@
   // a galera de sempre: no Quem vai?, quem já rachou comigo em outros eventos vem num toque, a mesma pessoa
   // (o mesmo id). Desligada pra todo mundo. Liga no aparelho com ?galera (fica lembrado; ?galera=0 desliga)
   const GALERA = false;
-  // o modo mesa, a conta do restaurante: por enquanto é a foto da conta, de referência pra digitar os itens (saiu do
-  // anotar, ficou feia lá; o lugar novo está em discussão, o motor ficou). Desligado pra todo mundo. Liga no aparelho com ?mesa
+  // o modo mesa, a conta do restaurante: por enquanto é a foto da conta no canto do título do anotar, de referência pra
+  // digitar os itens. Desligado pra todo mundo. Liga no aparelho com ?mesa
   // (fica lembrado; ?mesa=0 desliga). O que vier pra mesa (dividir sem ninguém ter pago) entra atrás desta mesma flag
   const MESA = false;
   // os temas (#285): quem nunca escolheu fica no papel (TEMA vazio). O "tema: papel" do pé da nota troca a cada toque,
@@ -2120,6 +2120,7 @@
       prevPayer = payerSel.value || me;
     payerSel.innerHTML = state.people.map((p) => `<option value="${p.id}">${esc(p.name)} pagou</option>`).join('');
     if (state.people.some((p) => p.id === prevPayer)) payerSel.value = prevPayer;
+    carregaFoto();
     const prev = inputs('#splitChips input');
     const known = new Set(prev.map((i) => i.value)),
       checked = new Set(prev.filter((i) => i.checked).map((i) => i.value));
@@ -2282,11 +2283,13 @@
     $('#total').innerHTML = valorHtml(items.reduce((a, e) => a + centavos(e), 0));
   }
 
-  // a foto da conta, de referência: a pessoa tira a foto e fica com ela ao lado enquanto digita os itens. Saiu do anotar
-  // (ficou feia lá) e espera o lugar novo: sem o #fotoConta na página, nada aparece. Vai pro
+  // a foto da conta, de referência: a pessoa tira a foto pela câmera no canto do título do anotar, e ela fica ali em
+  // miniatura, que amplia no toque, enquanto digita os itens. Vai pro
   // banco (fotos/<evento>), um JPEG em texto de até ~400 mil caracteres: o evento todo vê, e o `rooms` não engorda
   const FOTO_LADO = 1400; // o maior lado, em pixels: dá pra ler a conta e a foto continua leve
   const FOTO_MAX = 400000; // o mesmo teto do .validate de fotos/$room
+  const CAMERA =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h3l1.6-2.2h5.8L16.5 7h3A1.5 1.5 0 0 1 21 8.5v10a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5Z"/><circle cx="12" cy="13.2" r="3.6"/></svg>';
   /** a foto do evento aberto: undefined ainda não perguntei ao banco, null não tem @type {{ id: string, url: string | null } | undefined} */
   let fotoDaConta;
   /** a foto vira JPEG pequeno: encolhe e baixa a qualidade até caber no teto @param {File} arq @returns {Promise<string>} */
@@ -2308,7 +2311,7 @@
     }
     throw new Error('foto grande demais');
   }
-  /** a faixa da foto (no #fotoConta): o botão de tirar a foto, ou a foto numa faixa fixa no topo, que rola por dentro, com os botões de ampliar e trocar */
+  /** o canto do título do anotar: a câmera de tirar a foto, ou a miniatura dela, que amplia */
   function desenhaFoto() {
     const box = $('#fotoConta');
     if (!box) return;
@@ -2319,8 +2322,8 @@
     if (box.dataset.url !== undefined && box.dataset.url === (url || '')) return;
     box.dataset.url = url || '';
     box.innerHTML = url
-      ? `<div class="fotoFaixa"><img src="${url}" alt="foto da conta"></div><div class="fotoBotoes"><button type="button" class="ico" id="fotoVer" aria-label="ampliar a foto">⤢</button><button type="button" class="ico amb" id="fotoTroca" aria-label="trocar a foto">trocar</button></div>`
-      : `<button type="button" class="ico amb" id="fotoTira">📷 foto da conta</button>`;
+      ? `<button type="button" class="fotoMini" id="fotoVer" aria-label="ampliar a foto da conta"><img src="${url}" alt=""></button>`
+      : `<button type="button" class="ico amb fotoCam" id="fotoTira" aria-label="tirar a foto da conta">${CAMERA}</button>`;
   }
   /** pergunta ao banco se o evento já tem foto, e desenha */
   async function carregaFoto() {
@@ -2357,18 +2360,21 @@
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         fotoDaConta = { id, url };
         desenhaFoto();
+        // trocou pela ampliada: ela mostra a nova
+        const grande = $('.fotoGrande img');
+        if (grande instanceof HTMLImageElement) grande.src = url;
       } catch {
         toast('Não consegui guardar a foto');
       }
     };
     inp.click();
   }
-  /** a foto inteira, num cartão por cima do anotar */
+  /** a foto inteira, num cartão por cima do anotar, com o trocar pra quando saiu torta ou cortada */
   function verFoto() {
     const url = fotoDaConta && fotoDaConta.url;
     if (!url) return;
     overlay(
-      `<h2>Foto da conta</h2><div class="fotoGrande"><img src="${url}" alt="foto da conta"></div><div class="c voltar"><button id="fotoGrandeVoltar" class="ghost">voltar</button></div>`,
+      `<h2>Foto da conta</h2><div class="fotoGrande"><img src="${url}" alt="foto da conta"></div><div class="c voltar fotoGrandeBotoes"><button type="button" class="ico amb" id="fotoTroca">trocar a foto</button><button id="fotoGrandeVoltar" class="ghost">voltar</button></div>`,
     );
   }
   // #endregion

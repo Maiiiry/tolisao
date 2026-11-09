@@ -266,11 +266,23 @@ Funcionalidade: Acertar as contas
     Então aparece o aviso "Já tá quitado"
     E o banco tem 2 pagamentos do Klinsmann pro Fernando
 
+  Cenário: quem recebe dá baixa no que recebeu por fora
+    Quem pagou em dinheiro ou esqueceu de marcar não precisa abrir o evento: quem recebeu marca por ele.
+    Quando eu abro o evento como Fernando
+    E eu marco que recebi da Mengla
+    Então falta pagar:
+      | quem      | paga pra | valor |
+      | Lia       | Fernando | 117,84 |
+      | Klinsmann | Fernando | 73,61 |
+      | Klinsmann | Júlia    | 34,72 |
+    E o pagamento "Mengla → Fernando" está carimbado "PAGO"
+
   # os R$ 3,61 que sobraram do Klinsmann: pouco demais pra cobrar; dívida grande não se perdoa, só se dá baixa
   Cenário: só dívida pequena se perdoa
+    Abaixo de R$ 50,00 e com pelo menos um dia sem pagar, o cartão do recebi oferece perdoar.
     Dado que o Klinsmann já pagou R$ 70,00 pro Fernando
     Quando eu abro o evento como Fernando
-    Então só o Klinsmann tem perdoar em Minha conta
+    Então só o Klinsmann pode ser perdoado em Minha conta
     Quando eu perdoo o Klinsmann
     Então falta pagar:
       | quem      | paga pra | valor  |
@@ -278,6 +290,13 @@ Funcionalidade: Acertar as contas
       | Lia       | Fernando | 117,84 |
       | Klinsmann | Júlia    | 34,72  |
     E o pagamento "Klinsmann → Fernando" está carimbado "PERDOADO"
+
+  Cenário: dívida de hoje ainda não se perdoa
+    No mesmo dia ainda é cedo: perdão é pra dívida que ficou pra trás.
+    Dado que o Klinsmann já pagou R$ 70,00 pro Fernando
+    E que o último gasto foi anotado hoje
+    Quando eu abro o evento como Fernando
+    Então ninguém pode ser perdoado em Minha conta
 
   Cenário: quem perdoa conta no zap
     Perdão bom é perdão contado: o cartão oferece o zap, com o valor e o link do evento.

@@ -178,11 +178,25 @@ When('o app sincroniza', async ({ mundo }) => {
 });
 Then('não aparece aviso de pagamento', async ({ mundo }) => { await expect(mundo.p.locator('#toast')).not.toContainText('te pag'); });
 
-// quem recebe age na própria linha de Minha conta: perdoar (dívida pequena)
+// quem recebe age na própria linha de Minha conta: o recebi, e no cartão dele o perdoar (dívida pequena e de ontem)
 const linhaDe = (p, nome) => p.locator('#mineRows .row.sub').filter({ has: p.locator('.nm', { hasText: nome }) });
 const perdoa = async (p, nome) => {
   await p.evaluate(() => { window.__aberto = null; });
-  await linhaDe(p, nome).locator('[data-perdoa]').click(); await p.click('#okBtn');
+  await linhaDe(p, nome).locator('[data-recebi]').click(); await p.click('#perdoaBtn');
+};
+When('eu marco que recebi da/do {word}', async ({ mundo }, nome) => {
+  await linhaDe(mundo.p, nome).locator('[data-recebi]').click(); await mundo.p.click('#okBtn');
+  await expect(mundo.p.locator('#toast')).toContainText(/Recebido|quitado/);
+});
+// abre o cartão do recebi de cada linha e vê se ele oferece o perdoar
+const perdoaveis = async (p) => {
+  const quem = [];
+  for (const linha of await p.locator('#mineRows .row.sub:has([data-recebi])').all()) {
+    await linha.locator('[data-recebi]').click(); await p.waitForSelector('#okBtn');
+    if (await p.locator('#perdoaBtn').count()) quem.push(await linha.locator('.nm').textContent());
+    await p.click('#cancelBtn');
+  }
+  return quem;
 };
 // o cartão do "Perdoado!" fecha sem avisar; se a nota já estava quitada, ele nem abre
 When('eu perdoo a/o {word}', async ({ mundo }, nome) => {
@@ -199,18 +213,21 @@ Then('o zap abre com o perdão dos R$ {num} da/do {word}', async ({ mundo }, val
   expect(frase).toContain('*bailedamada*');
   expect(link).toBe(`${mundo.base}/pago/?evento=bailedamada&quem=${mundo.pessoa(nome).id}`);
 });
-Then('só a/o {word} tem perdoar em Minha conta', async ({ mundo }, nome) => {
-  await expect.poll(() => mundo.p.$$eval('#mineRows .row.sub:has([data-perdoa]) .nm', l => l.map(n => n.textContent))).toEqual([nome]);
-});
+Then('só a/o {word} pode ser perdoado em Minha conta', async ({ mundo }, nome) => { expect(await perdoaveis(mundo.p)).toEqual([nome]); });
+Then('ninguém pode ser perdoado em Minha conta', async ({ mundo }) => { expect(await perdoaveis(mundo.p)).toEqual([]); });
 When('eu começo a desfazer o perdão {string}', async ({ mundo }, txt) => {
   await pago(mundo.p, txt).locator('[data-undo]', { hasText: 'PERDOADO' }).click({ clickCount: 3 }); await mundo.p.waitForSelector('#okBtn');
 });
 Then('o cartão pergunta {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#overlayBox h2')).toHaveText(txt); });
 // a festa inteira anda no tempo junto: o último gasto fica com a idade pedida
-Given('que o último gasto foi anotado há {int} dias', async ({ mundo }, dias) => {
-  const desloca = AGORA - dias * 86400000 - Math.max(...mundo.evento.expenses.map(e => e.at));
-  for (const e of mundo.evento.expenses) e.at += desloca;
-});
+// (os pagamentos ficam onde estão: a idade da dívida conta do último gasto)
+const anotadoHa = (mundo, dias) => {
+  const gastos = mundo.evento.expenses.filter(e => e.kind !== 'payment');
+  const desloca = AGORA - dias * 86400000 - Math.max(...gastos.map(e => e.at));
+  for (const e of gastos) e.at += desloca;
+};
+Given('que o último gasto foi anotado há {int} dias', async ({ mundo }, dias) => { anotadoHa(mundo, dias); });
+Given('que o último gasto foi anotado hoje', async ({ mundo }) => { anotadoHa(mundo, 0); });
 Given('que o/a {word} já pagou R$ {num} pro/pra {word}', async ({ mundo }, quem, valor, pra) => {
   mundo.evento.expenses.push({ id: 'pg' + mundo.evento.expenses.length, kind: 'payment', desc: 'Pagamento', amount: valor,
     payer: mundo.pessoa(quem).id, among: [mundo.pessoa(pra).id], at: AGORA - 86400000, by: quem });

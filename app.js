@@ -26,7 +26,7 @@
   const APERTO_VISITAS = 3; // o aperto dos itens só nas primeiras visitas, e nunca depois de abrir a lista
   const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname); // rodando na máquina: não conta visita
   const JA_ANOTADO_H = 12; // gasto com o mesmo valor e o mesmo pagante, anotado há menos que isso: o anotar pergunta se não é o mesmo
-  const PERDOA_ATE = 1000; // em centavos: dívida abaixo disso ganha o "perdoar" na linha de quem recebe
+  const PERDOA_ATE = 5000; // em centavos: dívida abaixo disso, com 1 dia ou mais, se perdoa no cartão do recebi
   // o dono do aparelho é o nome que mais fui nos eventos daqui. Com 1 evento o aparelho pergunta se sou ele; a partir
   // de DONO_CERTO já entra como ele, e a partir de PIX_DIRETO a chave pix dele entra sozinha (antes, num toque)
   const DONO_CERTO = 2;
@@ -1921,9 +1921,9 @@
     };
     const valor = (t) =>
       `<span class="cur">${CURRENCY}</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${reais(t.cents)}" role="button" tabindex="0">${reais(t.cents)}</a>`;
-    // quem recebe também age: dívida pequena se perdoa (vira pagamento com o carimbo PERDOADO)
-    // o cobrar pisca como o ✔ paguei, linha atrás da linha; depois da piscada o perdoar brota de
-    // trás dele sem piscar, como o copiar pix sai de trás do ✔
+    // quem recebe também age: dá baixa no que recebeu por fora, e o cartão do recebi perdoa dívida pequena
+    // (vira pagamento com o carimbo PERDOADO). O cobrar pisca como o ✔ paguei, linha atrás da linha;
+    // depois da piscada o recebi brota de trás dele sem piscar, como o copiar pix sai de trás do ✔
     const piscaCobra = (i) => {
       const esp = i * PISCA_GAP,
         dt = anim.mine ? Date.now() - anim.mine : Infinity;
@@ -1934,13 +1934,8 @@
         dt = anim.mine ? Date.now() - anim.mine : Infinity;
       return anim.tocouOk || dt >= esp + BROTA_MS ? '' : ` brota" style="animation-delay:${esp - dt}ms`;
     };
-    const botoesRecebe = (t, i) => {
-      const d = `${t.from}|${t.to}|${t.cents}`,
-        pi = brotaRecebe(i);
-      return t.cents < PERDOA_ATE
-        ? `<button class="ico${pi}" data-perdoa="${d}" title="perdoar a dívida">🙏🏽 perdoar</button>`
-        : '';
-    };
+    const botoesRecebe = (t, i) =>
+      `<button class="ico${brotaRecebe(i)}" data-recebi="${t.from}|${t.to}|${t.cents}" title="marcar como recebido">💰 recebi</button>`;
     // os botões dizem o que fazem ("paguei", "copiar pix"): balão explicando ícone é recado solto, e a pessoa pula
     const quem =
       bal > 0
@@ -4397,11 +4392,29 @@
     commit();
     toast('Desfeito');
   }
-  /** o ✔ paguei de quem deve, e o ✔ recebi e o perdoar de quem recebe: todos viram um
+  /** o perdoar só aparece pra dívida pequena que já passou um dia sem ser paga: no mesmo dia ainda é cedo
+   *  @param {string} from @param {number} cents */
+  const perdoavel = (from, cents) => cents < PERDOA_ATE && idadeDaDivida(from).dias >= 1;
+  /** o cartão do recebi: "recebi" dá baixa, e o perdoar (quando dá) fica ali dentro, um passo atrás da linha
+   *  @param {string} from @param {string} valor @param {number} cents @returns {Promise<'recebi'|'perdoa'|null>} */
+  async function perguntaRecebi(from, valor, cents) {
+    const perdoa = perdoavel(from, cents)
+      ? `<button id="perdoaBtn" class="ico" title="perdoar a dívida">🙏🏽 perdoar</button>`
+      : '';
+    let perdoou = false;
+    const p = ask('Recebeu?', `${nomeHtml(from)} te pagou ${valor}${perdoa}`, 'recebi');
+    const bt = $('#perdoaBtn');
+    if (bt)
+      bt.onclick = () => {
+        perdoou = true;
+        $('#okBtn').click();
+      };
+    return (await p) ? (perdoou ? 'perdoa' : 'recebi') : null;
+  }
+  /** o ✔ paguei de quem deve, e o 💰 recebi de quem recebe (que também perdoa): todos viram um
    *  gasto do tipo 'payment' de quem deve pra quem recebe; o perdão leva `forgiven` */
   async function quita(el) {
-    const modo = el.dataset.perdoa ? 'perdoa' : 'paguei';
-    const [from, to, cs] = (el.dataset.perdoa || el.dataset.settle).split('|');
+    const [from, to, cs] = (el.dataset.recebi || el.dataset.settle).split('|');
     let cents = +cs;
     // o confete sai do botão: mede antes do cartão abrir por cima
     const r = el.getBoundingClientRect();
@@ -4448,10 +4461,9 @@
       });
       return p;
     };
-    const certeza = await (modo === 'perdoa'
-      ? ask('Perdoar?', `${nomeHtml(from)} não te deve mais ${valor}`, 'perdoar')
-      : pergunta());
-    if (!certeza) return;
+    /** @type {'paguei'|'recebi'|'perdoa'|null} */
+    const modo = el.dataset.recebi ? await perguntaRecebi(from, valor, cents) : (await pergunta()) ? 'paguei' : null;
+    if (!modo) return;
     // a nota pode estar velha: o outro lado pode já ter marcado do aparelho dele. Baixa o banco
     // e grava só o que ainda falta, senão o pagamento entra duas vezes e a dívida vira ao contrário
     await sync();
@@ -4475,6 +4487,13 @@
       byId: me || undefined,
       forgiven: modo === 'perdoa' || undefined,
     });
+    if (modo === 'recebi') {
+      // quem recebe não tem quem avisar no zap: quem devia fica sabendo pelo aviso
+      commit();
+      festa(r.left + r.width / 2, r.top + r.height / 2);
+      toast('Recebido! 🎉');
+      return;
+    }
     if (modo === 'perdoa') {
       // o perdão a gente conta: o cartão oferece o zap, com uma das frases do perdão
       seguraRisco = true;
@@ -4540,7 +4559,7 @@
     ['#settle [data-chama]', () => $('#waBtn').click()],
     ['[data-pix]', copiaPix],
     ['[data-undo]', tocaCarimbo],
-    ['[data-settle], [data-perdoa]', quita],
+    ['[data-settle], [data-recebi]', quita],
     ['[data-aviso]', () => tocaAviso()],
     ['#proxRole', proximoRole],
     ['[data-cobra]', cobra],

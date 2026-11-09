@@ -1,9 +1,9 @@
 @font-face{font-family:'VT323';src:url(fonts/vt323.woff2) format('woff2');font-display:swap}
 @font-face{font-family:'Permanent Marker';src:url(fonts/permanent-marker.woff2) format('woff2');font-display:swap}
 :root{--card:#fff8e6;--afundado:#f6ecd2;--amber:#9a5b00;--sombra:#222;--wood:#6b4a2b;--paper:#f6efdc;--ink:#222;--ink2:#5a4a30;--rule:#7a6a4a;--red:#9b1c1c;--green:#15703a;--muted:#7a6a4a;
-  /* os botões de quem recebe (cobrar, perdoar) e a plaquinha do quite: o tubo apagado, o vidro e as pontas do
+  /* os botões de quem recebe (cobrar, recebi, perdoar) e a plaquinha do quite: o tubo apagado, o vidro e as pontas do
      trecho queimado, e a sombra dele na cor da placa. Os temas escuros (no fim) redefinem tudo, com os tons claros */
-  --cobra:#2a7a6e;--perdoa:#a65a3a;
+  --cobra:#2a7a6e;--recebi:#1f5470;--perdoa:#a65a3a;
   --placa:#fffdf6;--placaSombra:#fffdf6;--apagado:#b5a69b;--vidro:#a99b91;--ponta:#1d1411}
 *{box-sizing:border-box}
 html{background:var(--wood);overflow-x:hidden}
@@ -471,19 +471,19 @@ button.ico,button.danger,a.link.amb,#chegouFora,#whoBtn,.digital a.link{position
 #mineRows .dupla>.ok{--tc:var(--green)}
 #mineRows .dupla>button.ico:not(.ok){--tc:var(--ink)}
 /* quem recebe: cada botão na sua cor, sem o verde de receber (que fica no valor) e sem neon:
-   cobrar verde-azulado, perdoar terracota. O cobrar pisca como o ✔,
-   e depois o perdoar brota de trás dele sem piscar (o cobrar fica por cima enquanto ele sai) */
+   cobrar verde-azulado, recebi azul-petróleo e, no cartão dele, perdoar terracota. O cobrar pisca como o ✔,
+   e depois o recebi brota de trás dele sem piscar (o cobrar fica por cima enquanto ele sai) */
 #mineRows .dupla>button.ico.cobra{z-index:2}
 /* o cobrar pisca como o ✔ paguei: enche na cor dele e dá o pulinho, uma vez */
 #mineRows .dupla>button.ico.cobra.pisca{animation:piscaCobra .55s ease-in-out both}
-/* o perdoar abre mais ligeiro que o copiar pix */
-#mineRows .dupla>button.ico.brota[data-perdoa]{animation-duration:.22s}
+/* o recebi abre mais ligeiro que o copiar pix */
+#mineRows .dupla>button.ico.brota[data-recebi]{animation-duration:.22s}
 @keyframes piscaCobra{
   0%,100%{background:var(--card);color:var(--tc);transform:none}
   45%{background:var(--tc);color:var(--card);transform:scale(1.14)}}
 #mineRows .dupla>button.ico.cobra{--tc:var(--cobra)}
-#mineRows .dupla>button.ico[data-perdoa]{--tc:var(--perdoa)}
-#mineRows .dupla>button.ico.cobra,#mineRows .dupla>button.ico[data-perdoa]{color:var(--tc);border-color:var(--tc);box-shadow:2px 2px 0 var(--tc)}
+#mineRows .dupla>button.ico[data-recebi]{--tc:var(--recebi)}
+#mineRows .dupla>button.ico.cobra,#mineRows .dupla>button.ico[data-recebi],#perdoaBtn{color:var(--tc);border-color:var(--tc);box-shadow:2px 2px 0 var(--tc)}
 #mineRows .dupla>button.ico.tocou{animation:toque .28s ease-out both}
 @keyframes toque{
   0%,40%{background:var(--tc);color:var(--card)}
@@ -546,7 +546,9 @@ button.edita{border-color:transparent;background:transparent;text-decoration:und
 .quitaValor{display:flex;width:max-content;align-items:baseline;gap:6px;margin:10px auto 0;padding:0 4px 4px;font-size:30px;color:var(--green);border-bottom:2px solid var(--green)}
 #quitaValor{width:5ch;flex:none;padding:0;border:0;text-align:left;font-size:30px;color:var(--green)}
 /* o copiar pix do Quitar? acompanha o valor digitado; sem clipboard, o código cai logo embaixo */
-#quitaPix{display:flex;margin:12px auto 0;white-space:nowrap} #quitaPixCode{margin-top:8px;text-align:left}
+#quitaPix{display:flex;margin:12px auto 0;white-space:nowrap}
+/* o perdoar mora no cartão do recebi, embaixo do recado, na terracota dele */
+#perdoaBtn{--tc:var(--perdoa);display:flex;margin:12px auto 0;white-space:nowrap} #quitaPixCode{margin-top:8px;text-align:left}
 .shares{display:grid;gap:4px}
 .shares .row{font-size:18px;line-height:1.4;align-items:center}
 /* o campo da parte é o mesmo do valor do gasto (a mesma linha de tinta, a mesma letra
@@ -868,7 +870,7 @@ html[data-escuro] #overlay,html[data-escuro] #sheet{background:rgba(8,5,10,.78)}
 html[data-escuro] .comandinha{box-shadow:0 2px 10px rgba(0,0,0,.5)}
 html[data-escuro] .bars svg{fill:var(--ink)}
 /* os botões de quem recebe no neon ganham brilho */
-html[data-tema=neon] #mineRows .dupla>button.ico:is(.cobra,[data-perdoa]){box-shadow:2px 2px 0 var(--tc),0 0 8px color-mix(in srgb,var(--tc) 55%,transparent);text-shadow:0 0 6px color-mix(in srgb,var(--tc) 60%,transparent)}
+html[data-tema=neon] :is(#mineRows .dupla>button.ico:is(.cobra,[data-recebi]),#perdoaBtn){box-shadow:2px 2px 0 var(--tc),0 0 8px color-mix(in srgb,var(--tc) 55%,transparent);text-shadow:0 0 6px color-mix(in srgb,var(--tc) 60%,transparent)}
 /* no escuro a plaquinha é preta e encardida, com um fio claro em volta que destaca do papel escuro, e o tubo mais claro
    e mais aceso, na cor do tema */
 html[data-escuro] .empty.vazio.quite{--neon:var(--acento);border-color:rgba(255,255,255,.16);
@@ -890,7 +892,7 @@ html[data-escuro] .empty.vazio.quite::before{border-color:color-mix(in srgb,#fff
   box-shadow:0 0 2px var(--tubo),0 0 calc(9px*var(--luz)) var(--tubo),0 0 calc(20px*var(--luz)) color-mix(in srgb,var(--tubo) 50%,transparent),inset 0 0 calc(9px*var(--luz)) color-mix(in srgb,var(--tubo) 45%,transparent)}
 /* neon: papel roxo-preto, títulos e valores acesos, réguas com um fio de luz */
 html[data-tema=neon]{--acento:#b44dff;--card:#1f1a2b;--afundado:#18131f;--sombra:#3d3152;--amber:#ff7a1a;--wood:#0c0912;--paper:#16121e;--ink:#f1e9ff;--ink2:#c3b3dc;--rule:#5d4b7c;--muted:#9d8fb5;--red:#ff4d6d;--green:#2ef2a0;
-  --cobra:#5cc4b3;--perdoa:#e8936c;
+  --cobra:#5cc4b3;--recebi:#7db8e0;--perdoa:#e8936c;
   --placa:#151015;--placaFundo:#060407;--placaSombra:#0b080c;--apagado:#4a3e44;--vidro:#3a3236;--ponta:#000}
 html[data-tema=neon] body{background:var(--wood) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="%230c0912"/><path d="M0 0h200v200H0z" fill="none" stroke="%23181226" stroke-width="2" stroke-dasharray="1 7"/></svg>')}
 html[data-tema=neon] .paper{box-shadow:0 14px 40px rgba(0,0,0,.8),0 0 60px rgba(214,0,106,.08)}
@@ -900,7 +902,7 @@ html[data-tema=neon] .neg,html[data-tema=neon] .neg *{text-shadow:0 0 8px rgba(2
 html[data-tema=neon] .hr{border-top-color:#8a3f8f;box-shadow:0 0 6px rgba(214,0,106,.35)}
 /* grafite: boteco de madrugada, papel grafite quente e tinta creme; o neon fica só no quite */
 html[data-tema=grafite]{--acento:#ff8a2a;--card:#29221f;--afundado:#1c1715;--sombra:#463b33;--amber:#d9782a;--wood:#160f0b;--paper:#1f1a1c;--ink:#eee3cf;--ink2:#c4b49a;--rule:#6f6259;--muted:#9a8b7c;--red:#ff6b6b;--green:#46d98a;
-  --cobra:#5cc4b3;--perdoa:#e8936c;
+  --cobra:#5cc4b3;--recebi:#7db8e0;--perdoa:#e8936c;
   --placa:#151015;--placaFundo:#060407;--placaSombra:#0b080c;--apagado:#4a3e44;--vidro:#3a3236;--ponta:#000}
 html[data-tema=grafite] body{background:var(--wood) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="%23160f0b"/><path d="M0 0h200v200H0z" fill="none" stroke="%23241a12" stroke-width="2" stroke-dasharray="1 7"/></svg>')}
 html[data-tema=grafite] .paper{box-shadow:0 14px 30px rgba(0,0,0,.7)}

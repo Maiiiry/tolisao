@@ -113,11 +113,6 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 .adminLinha{margin-top:22px}
 .adminLinha button.ico.amb{height:auto;font-size:20px;padding:9px 20px;gap:6px}
 .adminLinha button.ico.amb svg{width:18px;height:18px}
-.fotoConta{display:flex;align-items:center;gap:12px;margin:8px 0}
-.fotoConta.hidden{display:none}
-/* com foto, ela fica numa faixa fixa no topo do anotar, de ponta a ponta: a pessoa rola a conta por dentro da faixa
-   enquanto digita embaixo, com os botões de ampliar e trocar */
-.fotoConta.tem:not(.hidden){display:block;position:sticky;top:-16px;z-index:3;margin:0 -20px 12px;background:var(--paper);border-bottom:2px solid var(--ink)}
 .fotoFaixa{height:min(190px,26vh);overflow-y:auto;overscroll-behavior:contain}
 .fotoFaixa img{width:100%;height:auto;display:block}
 .fotoBotoes{position:absolute;right:8px;top:8px;display:flex;gap:6px}

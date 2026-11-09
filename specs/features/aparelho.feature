@@ -10,13 +10,6 @@ Funcionalidade: O que fica guardado no aparelho
       | o quê  | valor  | pagou | divide entre          |
       | Airbnb | 300,00 | Júlia | Fernando, Júlia, Lia  |
 
-  Cenário: pedir pra testar tudo liga de uma vez o que está em teste
-    Quem testa não decora um link por função: um só liga todas, e fica lembrado no aparelho.
-    Dado que eu pedi pra testar tudo
-    Quando eu abro o evento como Lia
-    E eu toco no ✎
-    Então o anotar oferece a foto da conta
-
   Cenário: o Fernando chega no admin pela tela inicial, sem pedir nada
     Dado que neste aparelho eu me chamo "Fernando"
     E que eu abro o site sem evento

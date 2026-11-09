@@ -115,8 +115,13 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 .adminLinha button.ico.amb svg{width:18px;height:18px}
 .fotoConta{display:flex;align-items:center;gap:12px;margin:8px 0}
 .fotoConta.hidden{display:none}
-.miniFoto{padding:0;border:2px solid var(--ink);background:none;width:64px;height:64px;overflow:hidden;box-shadow:2px 2px 0 var(--sombra)}
-.miniFoto img{width:100%;height:100%;object-fit:cover;display:block}
+/* com foto, ela fica numa faixa fixa no topo do anotar, de ponta a ponta: a pessoa rola a conta por dentro da faixa
+   enquanto digita embaixo, com os botões de ampliar e trocar */
+.fotoConta.tem:not(.hidden){display:block;position:sticky;top:-16px;z-index:3;margin:0 -20px 12px;background:var(--paper);border-bottom:2px solid var(--ink)}
+.fotoFaixa{height:min(190px,26vh);overflow-y:auto;overscroll-behavior:contain}
+.fotoFaixa img{width:100%;height:auto;display:block}
+.fotoBotoes{position:absolute;right:8px;top:8px;display:flex;gap:6px}
+.fotoBotoes .ico{background:var(--paper);box-shadow:2px 2px 0 var(--sombra)}
 .fotoGrande{max-height:70vh;overflow:auto;margin:8px 0}
 .fotoGrande img{width:100%;display:block}
 .hr{border-top:2px dashed var(--rule);margin:12px 0}
@@ -186,20 +191,20 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 /* apertada, a moldura vira a cor das réguas: o contorno preto pesava no meio da lista */
 #itemsHead.aberto:before{box-shadow:inset 2px 2px 0 rgba(0,0,0,.14);background:var(--afundado);border-color:var(--rule)}
 @media (prefers-reduced-motion:reduce){#itemsHead,#itemsHead:before{transition:none}}
-/* a lista estica e encolhe (o height:auto anima com o interpolate-size; o display espera o fim pra sumir) e, no toque
+/* a lista estica e encolhe (no app.js, só até o pé da tela; o .fechando segura o display até o fim, e a margem
+   encolhe junto, senão os 8px sumiam de uma vez no fim) e, no toque
    que abre, os itens saem de trás da linha em leque, como os quitados antigos: todos do topo da lista (o --topo de cada
    um, medido no toque; as linhas têm alturas diferentes) e o de cima por cima. O .leque é do toque, não de cada render:
    um sync com a lista aberta não abre o leque de novo. As outras opções ficaram em docs/animacoes.md */
-#itemsBody{interpolate-size:allow-keywords;overflow:clip;height:auto;transition:height .4s cubic-bezier(.3,.6,.4,1),display .4s allow-discrete}
-#itemsBody.hidden{height:0}
-@starting-style{#itemsBody:not(.hidden){height:0}}
+#itemsBody{overflow:clip;margin-top:8px}
+#itemsBody.hidden.fechando{display:block !important;pointer-events:none}
 @keyframes lequeItens{from{transform:translateY(calc(-1 * var(--topo,0px))) scale(.96)}to{transform:none}}
-#itemsBody.leque #expenses>*{position:relative;background:var(--paper);animation:lequeItens .45s cubic-bezier(.2,.8,.3,1) both}
+#itemsBody.leque #expenses>.vem{position:relative;background:var(--paper);animation:lequeItens .45s cubic-bezier(.2,.8,.3,1) both}
 #itemsBody.leque #expenses>:nth-child(1){z-index:9}#itemsBody.leque #expenses>:nth-child(2){z-index:8}
 #itemsBody.leque #expenses>:nth-child(3){z-index:7}#itemsBody.leque #expenses>:nth-child(4){z-index:6}
 #itemsBody.leque #expenses>:nth-child(5){z-index:5}#itemsBody.leque #expenses>:nth-child(6){z-index:4}
 #itemsBody.leque #expenses>:nth-child(n+7){z-index:3}
-@media (prefers-reduced-motion:reduce){#itemsCaret span,#itemsHead.pisca,#itemsHead.pisca:before,#itemsHead.pisca #itemsCaret span,#itemsHead.pisca #itemsCaret path,#itemsHead.suave #itemsCaret,#itemsBody,#itemsBody.leque #expenses>*{transition:none;animation:none}}
+@media (prefers-reduced-motion:reduce){#itemsCaret span,#itemsHead.pisca,#itemsHead.pisca:before,#itemsHead.pisca #itemsCaret span,#itemsHead.pisca #itemsCaret path,#itemsHead.suave #itemsCaret,#itemsBody.leque #expenses>*{transition:none;animation:none}}
 /* a linha dos itens é um botão com moldura: as réguas em volta dela sobravam. Ficam só o espaço */
 #mine>.hr,#itemsSec>.hr{border-top-color:transparent}
 .row.total{font-size:24px;margin-top:10px} .row.total .v{font-size:24px}
@@ -538,24 +543,6 @@ button.edita{border-color:transparent;background:transparent;text-decoration:und
 #expenses .item.open .row .l{white-space:normal}
 #expenses .day{margin:10px 0 0}
 #amount{font-size:30px;letter-spacing:1px}
-/* o texto da conta (?mesa): o 📋 entre o valor e o "O quê?", e o cartão onde se cola o texto que o celular leu da
-   foto. Cada linha com preço vira um botão de linha da nota; o tocado fica marcado e soma embaixo */
-.two:has(#contaBtn:not(.hidden)){grid-template-columns:140px 44px 1fr}
-#contaBtn{width:44px;height:44px;padding:0;display:grid;place-content:center;box-shadow:2px 2px 0 var(--sombra);margin-bottom:4px}
-.comoCopiar{margin:4px 0 10px;font-size:17px;text-transform:none;color:var(--ink2)}
-.comoCopiar summary{cursor:pointer;text-decoration:underline;text-underline-offset:3px}
-.comoCopiar ol{margin:6px 0 0;padding-left:22px}
-.comoCopiar li{margin:3px 0}
-#contaTexto{width:100%;font:inherit;font-size:17px;line-height:1.25;padding:8px;border:2px solid var(--ink);background:var(--card);color:var(--ink);resize:vertical;text-transform:none}
-.precosConta{display:grid;gap:4px;margin-top:10px;max-height:44vh;overflow:auto}
-.precoConta{display:flex;align-items:baseline;gap:6px;width:100%;padding:6px 8px;text-align:left;text-transform:none;box-shadow:none;border:2px dashed var(--rule);background:none;color:var(--ink);font-size:18px}
-.precoConta .l{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.precoConta .d{flex:1;border-bottom:2px dotted var(--rule);min-width:12px}
-.precoConta .v{white-space:nowrap}
-.precoConta.sim{border-style:solid;border-color:var(--ink);background:var(--afundado);box-shadow:2px 2px 0 var(--sombra)}
-.somaFoto{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:10px 0}
-.somaFoto .fita{font-size:16px;color:var(--muted);letter-spacing:.5px;overflow-wrap:anywhere}
-.somaFoto b{font-weight:400;font-size:28px;white-space:nowrap}
 /* o quanto pagou do Quitar?: o mesmo campo do valor do gasto, no verde de quem recebe */
 .quitaValor{display:flex;width:max-content;align-items:baseline;gap:6px;margin:10px auto 0;padding:0 4px 4px;font-size:30px;color:var(--green);border-bottom:2px solid var(--green)}
 #quitaValor{width:5ch;flex:none;padding:0;border:0;text-align:left;font-size:30px;color:var(--green)}

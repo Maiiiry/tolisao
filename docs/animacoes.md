@@ -55,9 +55,11 @@ lista estica e encolhe pelo `::details-content` e a setinha gira.
 ## ver os itens (cena `aperta`)
 
 no ar: **C, leque** (a lista estica e os itens saem de trás da linha; o `.leque` vem do toque, no `app.js`). as três
-dividem a base: o `#itemsBody` estica e encolhe pelo `interpolate-size`, e o `display` espera o fim pra sumir.
+dividem a base: o `#itemsBody` estica e encolhe. no ar, a base saiu do CSS e foi pro toque no `app.js` (um `animate()`
+só até o pé da tela, com a margem junto): o `interpolate-size` abaixo corria a altura inteira, centenas de pixels por
+quadro com muitos itens, e os 8px da margem e a junção das margens vizinhas sumiam de uma vez no fim do fecha.
 
-**A, gaveta:** só a base.
+**A, gaveta:** só a base (a versão em CSS, a de antes).
 
 ```css
 #itemsBody{interpolate-size:allow-keywords;overflow:clip;height:auto;transition:height .4s cubic-bezier(.3,.6,.4,1),display .4s allow-discrete}

@@ -11,7 +11,7 @@
   //   → a conta: limpar e mesclar (clean, merge) → o banco (sync) → dinheiro
   //   → a conta: saldos e quem paga quem (balances, settlements) → cores
   //   → fila das animações → desenhos (ícones) → pix → aviso no celular → a nota (render) → o anotar
-  //   → cartões (overlays) → o texto da conta → entrar num evento → meus eventos → a digital → botões → cliques
+  //   → cartões (overlays) → entrar num evento → meus eventos → a digital → botões → cliques
   //   → imagem da comanda → instalar → a ficha do rodapé → código de barras → início
   // o QR (qrMatriz, qrSvg) mora no qr.js, que o index.html carrega antes: a plaquinha de mesa (mesa/) usa o mesmo.
   // tudo começa na última seção, "início": lê o ?evento= do endereço e abre o evento.
@@ -41,8 +41,8 @@
   // a galera de sempre: no Quem vai?, quem já rachou comigo em outros eventos vem num toque, a mesma pessoa
   // (o mesmo id). Desligada pra todo mundo. Liga no aparelho com ?galera (fica lembrado; ?galera=0 desliga)
   const GALERA = false;
-  // o modo mesa, a conta do restaurante: por enquanto é o texto da conta, o 📋 do anotar onde a pessoa cola o texto
-  // que o celular leu da foto, e cada preço tocado soma no valor. Desligado pra todo mundo. Liga no aparelho com ?mesa
+  // o modo mesa, a conta do restaurante: por enquanto é a foto da conta no anotar, de referência pra digitar os
+  // itens. Desligado pra todo mundo. Liga no aparelho com ?mesa
   // (fica lembrado; ?mesa=0 desliga). O que vier pra mesa (dividir sem ninguém ter pago) entra atrás desta mesma flag
   const MESA = false;
   // os temas (#285): quem nunca escolheu fica no papel (TEMA vazio). O "tema: papel" do pé da nota troca a cada toque,
@@ -108,12 +108,11 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, myName, pixKey, pixName, passkeyOn, passkeyId, pixDigital, avisoSim, galeraOn, mesaOn, contaColou, testesOn, tema }
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, myName, pixKey, pixName, passkeyOn, passkeyId, pixDigital, avisoSim, galeraOn, mesaOn, testesOn, tema }
   //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok; pixName: de quem é ela;
   //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista; pixDigital: o id da passkey do pix, ou false se a digital daqui não tem PRF;
   //                  avisoSim: já disse sim ao 🔔 uma vez, os outros eventos ligam sozinhos;
-  //                  galeraOn: a galera de sempre no Quem vai?, pelo ?galera; mesaOn: o modo mesa (o texto da conta), pelo ?mesa;
-  //                  contaColou: já colou uma conta, o passo a passo de copiar o texto vem fechado;
+  //                  galeraOn: a galera de sempre no Quem vai?, pelo ?galera; mesaOn: o modo mesa (a foto da conta), pelo ?mesa;
   //                  testesOn: tudo que está em teste de uma vez, pelo ?testes;
   //                  tema: o tema escolhido no pé da nota ('papel' é o papel; sem ele, vale o TEMA))
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
@@ -2122,7 +2121,6 @@
       prevPayer = payerSel.value || me;
     payerSel.innerHTML = state.people.map((p) => `<option value="${p.id}">${esc(p.name)} pagou</option>`).join('');
     if (state.people.some((p) => p.id === prevPayer)) payerSel.value = prevPayer;
-    $('#contaBtn').classList.toggle('hidden', !temMesa());
     carregaFoto();
     const prev = inputs('#splitChips input');
     const known = new Set(prev.map((i) => i.value)),
@@ -2179,13 +2177,15 @@
       .join('');
     $('#settle').innerHTML = (deve || nada) + pagos;
   }
+  // o formatador é feito uma vez: o toLocaleDateString com opções monta um a cada chamada, e com muitos itens isso
+  // travava o toque que abre e fecha a lista
+  const DIA_DA_LISTA = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
   /** a lista dos itens, do mais novo pro mais velho, separada por dia quando tem mais de um */
   function renderItens() {
     const items = state.expenses.filter((e) => e.kind !== 'payment');
     const all = [...items].reverse(),
       list = showAll ? all : all.slice(0, 10);
-    const dayOf = (e) =>
-      new Date(e.at).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
+    const dayOf = (e) => DIA_DA_LISTA.format(e.at);
     const days = new Set(all.map(dayOf));
     let lastDay = null;
     // editar troca o item por outro: o que saiu fica no `gone` com `to`, e vale a última edição
@@ -2309,14 +2309,18 @@
     }
     throw new Error('foto grande demais');
   }
-  /** a faixa do anotar: o botão de tirar a foto, ou a miniatura dela (toque amplia) e o trocar */
+  /** a faixa do anotar: o botão de tirar a foto, ou a foto numa faixa fixa no topo, que rola por dentro, com os botões de ampliar e trocar */
   function desenhaFoto() {
     const box = $('#fotoConta');
     if (!box) return;
     box.classList.toggle('hidden', !temMesa());
     const url = fotoDaConta && fotoDaConta.id === groupId ? fotoDaConta.url : null;
+    box.classList.toggle('tem', !!url);
+    // o mesmo desenho não se refaz a cada sync: refazer devolveria a conta rolada pro começo
+    if (box.dataset.url !== undefined && box.dataset.url === (url || '')) return;
+    box.dataset.url = url || '';
     box.innerHTML = url
-      ? `<button type="button" class="miniFoto" id="fotoVer" aria-label="ver a foto da conta"><img src="${url}" alt="foto da conta"></button><button type="button" class="ico amb" id="fotoTroca">trocar foto</button>`
+      ? `<div class="fotoFaixa"><img src="${url}" alt="foto da conta"></div><div class="fotoBotoes"><button type="button" class="ico" id="fotoVer" aria-label="ampliar a foto">⤢</button><button type="button" class="ico amb" id="fotoTroca" aria-label="trocar a foto">trocar</button></div>`
       : `<button type="button" class="ico amb" id="fotoTira">📷 foto da conta</button>`;
   }
   /** pergunta ao banco se o evento já tem foto, e desenha */
@@ -2354,7 +2358,6 @@
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         fotoDaConta = { id, url };
         desenhaFoto();
-        toast('Foto da conta guardada');
       } catch {
         toast('Não consegui guardar a foto');
       }
@@ -2896,8 +2899,8 @@
       }
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><span class="campoEx"><input id="gateCode" placeholder="ex: ${natal() ? 'amigo secreto, ceia' : 'praia, churras'}" required autocapitalize="none"><span class="exemplo" aria-hidden="true"></span></span><button class="small">${botao}</button></form>
       <p id="gateErr" class="status err" style="margin:0"></p><div class="c" style="display:flex;justify-content:center;gap:8px"><button id="instalarGate" class="ico amb hidden">${BAIXAR_SVG} instalar</button></div>${
-        // o Fernando (o dono) chega no admin pela tela inicial, num botão maior e mais abaixo
-        souFernando() && !aberto
+        // o Fernando (o dono) chega no admin pela tela inicial e pela de outro evento, num botão maior e mais abaixo
+        souFernando()
           ? `<div class="c adminLinha"><button id="adminBtn" class="ico amb">${CHAVE_SVG} admin</button></div>`
           : ''
       }${aberto ? `<div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>` : ''}`,
@@ -3307,164 +3310,6 @@
     };
   }
 
-  // #endregion
-  // #region o texto da conta
-  // ---------- o texto da conta ----------
-  // o 📋 do anotar (MESA, ou ?mesa no aparelho). A conta chega impressa, e o próprio celular já lê texto em foto (o
-  // Texto ao Vivo do iPhone, o Lens do Android) melhor que qualquer leitor no site: a pessoa copia o texto da foto e
-  // cola aqui. Cada linha com preço vira um botão, e tocar soma no valor do anotar
-
-  // um preço: "12,90", "1.234,50", "12.90", "-2,00", "0,25-". O R$ e o pontilhado em volta não atrapalham
-  const PRECO_TXT = /(-?)(\d{1,3}(?:\.\d{3})+|\d{1,4})[,.](\d{2})(-?)(?![\d,.])/g;
-  /** @typedef {{ c: number, nome: string, qtd?: number }} PrecoDaConta */
-  /** as linhas com preço do texto colado, na ordem da conta. O preço de uma linha é o último dela (o de antes é o
-   *  unitário); com quantidade, vale ela vezes o unitário. O "TOTAL ITEM" da linha de baixo é o total do item de
-   *  cima. O Lens do Android às vezes copia a coluna dos nomes e depois a dos preços: os preços que vêm sem nome
-   *  pegam, na ordem, os nomes soltos logo antes deles
-   *  @param {string} texto @returns {PrecoDaConta[]} */
-  function precosDoTexto(texto) {
-    /** @type {PrecoDaConta[]} */ const out = [];
-    /** @type {string[]} */ let soltos = []; // os nomes sem preço desde a última linha com nome e preço
-    /** @type {PrecoDaConta[]} */ let semNome = []; // os preços sem nome que vieram depois deles
-    const casa = () => {
-      const tira = soltos.slice(-semNome.length);
-      semNome.forEach((p, k) => (p.nome = tira[k - (semNome.length - tira.length)] || ''));
-      if (semNome.length) soltos = [];
-      semNome = [];
-    };
-    for (const bruta of String(texto).split(/\r?\n/)) {
-      const l = bruta.replace(/\s+/g, ' ').trim();
-      if (!l) continue;
-      const ps = [...l.matchAll(PRECO_TXT)];
-      if (!ps.length) {
-        if (semNome.length) casa();
-        if (/[a-z]{2}/i.test(l)) soltos.push(l.slice(0, 40));
-        continue;
-      }
-      const ult = ps[ps.length - 1],
-        c = (+ult[2].replace(/\./g, '') * 100 + +ult[3]) * (ult[1] || ult[4] ? -1 : 1);
-      if (!c) continue;
-      if (/^-?\s*total\s+(do\s+)?item/i.test(l) && out.length) {
-        out[out.length - 1].c = c;
-        continue;
-      }
-      // o nome é o que sobra da linha sem os preços, o pontilhado, o R$ e a quantidade
-      const resto = l
-          .replace(PRECO_TXT, ' ')
-          .replace(/R\$/gi, ' ')
-          .replace(/[.…_]{2,}|\s-+\s/g, ' ')
-          .replace(/^-+/, ' '),
-        q = resto.match(/(?:^|\s)(\d{1,3})\s*(?:und|un|unid)?\.?\s*[x×*](?=\s|$)/i),
-        qtd = q ? +q[1] : 0,
-        nome = resto
-          .replace(/(?:^|\s)\d{1,3}\s*(?:und|un|unid)?\.?\s*[x×*](?=\s|$)/gi, ' ')
-          .replace(/\s+/g, ' ')
-          .trim()
-          .slice(0, 40);
-      // com quantidade e um preço só na linha, o preço é o unitário; com dois, o último já é o total
-      const p = { c: qtd > 1 && ps.length === 1 ? c * qtd : c, nome: /[a-z]{2}/i.test(nome) ? nome : '' };
-      if (qtd > 1) p.qtd = qtd;
-      out.push(p);
-      if (p.nome) {
-        if (semNome.length) casa();
-        soltos = [];
-      } else semNome.push(p);
-    }
-    casa();
-    return out;
-  }
-
-  /** o cartão aberto: os preços do texto e os tocados, na ordem do toque
-   *  @type {{ precos: PrecoDaConta[], tocados: number[] } | null} */
-  let contaColada = null;
-  const COMO_COPIAR =
-    '<details class="comoCopiar"><summary>como pegar o texto da conta</summary><ol>' +
-    '<li>tira uma foto da conta com a câmera do celular</li>' +
-    '<li><b>iPhone:</b> abre a foto, toca e segura numa palavra, toca em <b>Selecionar Tudo</b> e em <b>Copiar</b></li>' +
-    '<li><b>Android:</b> abre a foto no Google Fotos, toca em <b>Lens</b>, escolhe <b>Texto</b>, <b>Selecionar tudo</b> e <b>Copiar</b></li>' +
-    '<li>volta aqui e cola</li></ol></details>';
-  function abreConta() {
-    contaColada = { precos: [], tocados: [] };
-    const cola = !!(navigator.clipboard && navigator.clipboard.readText);
-    overlay(
-      `<h2>Texto da conta</h2><p class="muted recado" id="contaRecado">copia o texto da foto da conta e cola aqui</p>` +
-        COMO_COPIAR +
-        `<textarea id="contaTexto" rows="4" placeholder="cola o texto da conta aqui" autocomplete="off" spellcheck="false"></textarea>` +
-        (cola ? '<div class="c"><button type="button" id="contaCola" class="ico amb">📋 colar</button></div>' : '') +
-        `<div class="precosConta" id="contaPrecos"></div>` +
-        `<div class="somaFoto"><span class="fita" id="fotoFita"></span><b id="fotoSoma"></b></div>` +
-        `<button class="big" id="fotoUsar" disabled>usar</button>` +
-        `<div class="c voltar"><button id="fotoVoltar" class="ghost">voltar</button></div>`,
-    );
-    // na primeira vez o passo a passo já vem aberto
-    if (!device().contaColou) $('.comoCopiar').open = true;
-    $('#contaTexto').addEventListener('input', () => leConta($('#contaTexto').value));
-  }
-  /** o botão de colar lê a área de transferência (o navegador pergunta antes) */
-  async function colaConta() {
-    try {
-      const t = await navigator.clipboard.readText();
-      $('#contaTexto').value = t;
-      leConta(t);
-    } catch {
-      $('#contaTexto').focus();
-      $('#contaRecado').textContent = 'segura na caixa e cola';
-    }
-  }
-  /** o texto colado vira os botões; colado de novo, perde o que estava tocado */
-  function leConta(texto) {
-    const f = contaColada;
-    if (!f) return;
-    f.precos = precosDoTexto(texto);
-    f.tocados = [];
-    const n = f.precos.length;
-    if (n) {
-      setDevice('contaColou', true);
-      $('.comoCopiar').open = false;
-    }
-    $('#contaRecado').textContent = !texto.trim()
-      ? 'copia o texto da foto da conta e cola aqui'
-      : n
-        ? `achei ${n} preço${n > 1 ? 's' : ''}. toque nos que entram nesse gasto.`
-        : 'não achei preço nesse texto.';
-    $('#contaPrecos').innerHTML = f.precos
-      .map(
-        (p, i) =>
-          `<button type="button" class="precoConta" data-preco="${i}" aria-pressed="false" aria-label="${esc(p.nome ? `${p.nome} ` : '')}${comSifrao(p.c)}"><span class="l">${esc(p.nome || '·')}${p.qtd ? ` <span class="muted">(${p.qtd}×)</span>` : ''}</span><span class="d"></span><span class="v">${reais(p.c)}</span></button>`,
-      )
-      .join('');
-    somaFoto();
-  }
-  /** a fita do que foi tocado, a soma e o botão de usar */
-  function somaFoto() {
-    const f = contaColada,
-      soma = f.tocados.reduce((s, i) => s + f.precos[i].c, 0);
-    $('#fotoFita').textContent = f.tocados.map((i) => reais(f.precos[i].c)).join(' + ');
-    $('#fotoSoma').textContent = f.tocados.length ? comSifrao(soma) : '';
-    $('#fotoUsar').textContent = soma > 0 ? `usar ${comSifrao(soma)}` : 'usar';
-    $('#fotoUsar').disabled = !(soma > 0);
-  }
-  const marcaPreco = (el) => {
-    const f = contaColada,
-      i = +el.dataset.preco;
-    if (!f || !f.precos[i]) return;
-    const j = f.tocados.indexOf(i);
-    if (j >= 0) f.tocados.splice(j, 1);
-    else f.tocados.push(i);
-    el.classList.toggle('sim', j < 0);
-    el.setAttribute('aria-pressed', String(j < 0));
-    somaFoto();
-  };
-  /** a soma vai pro valor do anotar, como se a pessoa tivesse digitado */
-  const usaFoto = () => {
-    const f = contaColada,
-      soma = f ? f.tocados.reduce((s, i) => s + f.precos[i].c, 0) : 0;
-    if (!(soma > 0)) return;
-    $('#amount').value = reais(soma);
-    updateHint();
-    closeOverlay();
-    if (!$('#desc').value) $('#desc').focus();
-  };
   // #endregion
   // #region entrar num evento
   // ---------- entrar num evento (código → id no banco) ----------
@@ -4210,22 +4055,55 @@
     render();
   };
   $('#itemsHead').onclick = () => {
+    const corpo = $('#itemsBody'),
+      lista = $('#expenses');
+    // tocou no meio do abre ou do fecha: parte da altura de agora
+    const de = corpo.getBoundingClientRect().height,
+      margem = parseFloat(getComputedStyle(corpo).marginTop);
+    for (const a of corpo.getAnimations()) a.cancel();
     itemsOpen = !itemsOpen;
     if (itemsOpen) setDevice('itemsOpened', true);
     // só a lista muda: refazer a nota inteira (render) travava o toque no celular
     agendaConviteItens(temMe());
     renderItens();
+    const anima = !semMovimento();
+    // fechando, a lista fica na tela até a altura chegar a zero (o .fechando segura o display)
+    corpo.classList.toggle('fechando', anima && !itemsOpen);
     // o leque é só do toque que abre (o style.css): tira no fim, senão o próximo render abria de novo
-    const corpo = $('#itemsBody'),
-      lista = $('#expenses');
-    // cada linha sai do topo da lista: mede onde ela fica, antes do leque começar
-    if (itemsOpen) {
-      const y0 = lista.getBoundingClientRect().top;
-      for (const l of /** @type {HTMLElement[]} */ ([...lista.children]))
-        l.style.setProperty('--topo', `${l.getBoundingClientRect().top - y0}px`);
+    corpo.classList.toggle('leque', itemsOpen && anima);
+    if (!anima) return;
+    const caixa = corpo.getBoundingClientRect(),
+      ate = itemsOpen ? caixa.height : 0;
+    // a lista estica e encolhe só até o pé da tela: o que passa dele ninguém vê, e com muitos itens a altura
+    // inteira corria centenas de pixels por quadro. Abrindo, o resto entra de uma vez fora da tela
+    const tela = Math.max(0, innerHeight - caixa.top);
+    const px = (h) => `${Math.min(h, tela)}px`;
+    const mt = getComputedStyle(corpo).marginTop;
+    // sumida de vez (display:none), a margem da linha e a da régua de baixo viram uma só; com altura zero ainda
+    // sobra a soma das duas. A margem da lista desconta a diferença, senão o fim do fecha dava um pulinho
+    const regua = /** @type {HTMLElement} */ (corpo.nextElementSibling),
+      classes = corpo.className;
+    corpo.className = 'hidden';
+    const yFechada = regua.getBoundingClientRect().top;
+    corpo.className = 'hidden fechando';
+    corpo.style.cssText = 'height:0;margin-top:0';
+    const junta = `${yFechada - regua.getBoundingClientRect().top}px`;
+    corpo.style.cssText = '';
+    corpo.className = classes;
+    const desde = de ? `${margem}px` : junta;
+    corpo.animate(
+      { height: [px(de), px(ate)], marginTop: [desde, itemsOpen ? mt : junta] },
+      { duration: 400, easing: 'cubic-bezier(.3,.6,.4,1)' },
+    ).onfinish = () => corpo.classList.remove('fechando');
+    if (!itemsOpen) return;
+    // cada linha sai do topo da lista: mede onde ela fica, antes do leque começar. Só as que caem na tela
+    const y0 = lista.getBoundingClientRect().top;
+    for (const l of /** @type {HTMLElement[]} */ ([...lista.children])) {
+      const y = l.getBoundingClientRect().top;
+      l.classList.toggle('vem', y < innerHeight);
+      l.style.setProperty('--topo', `${y - y0}px`);
     }
-    corpo.classList.toggle('leque', itemsOpen && !semMovimento());
-    if (itemsOpen) setTimeout(() => corpo.classList.remove('leque'), 700);
+    setTimeout(() => corpo.classList.remove('leque'), 700);
   };
   /** @type {HTMLElement | null} */
   let sheetDeQuem = null;
@@ -4646,14 +4524,9 @@
     ['#temaBtn', trocaTema],
     ['h1>span', voaGorro],
     ['#instalar, #instalarGate', instala],
-    ['#contaBtn', abreConta],
-    ['#contaCola', colaConta],
-    ['[data-preco]', marcaPreco],
-    ['#fotoUsar', usaFoto],
     ['#fotoTira, #fotoTroca', tiraFoto],
     ['#fotoVer', verFoto],
     ['#fotoGrandeVoltar', closeOverlay],
-    ['#fotoVoltar', closeOverlay],
     ['#splitSeg button', escolheAba],
     ['[data-resto]', poeResto],
     ['#restoIgual', divideResto],

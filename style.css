@@ -113,10 +113,14 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 .adminLinha{margin-top:22px}
 .adminLinha button.ico.amb{height:auto;font-size:20px;padding:9px 20px;gap:6px}
 .adminLinha button.ico.amb svg{width:18px;height:18px}
-.fotoFaixa{height:min(190px,26vh);overflow-y:auto;overscroll-behavior:contain}
-.fotoFaixa img{width:100%;height:auto;display:block}
-.fotoBotoes{position:absolute;right:8px;top:8px;display:flex;gap:6px}
-.fotoBotoes .ico{background:var(--paper);box-shadow:2px 2px 0 var(--sombra)}
+.fotoConta{position:absolute;top:18px;right:20px}
+.fotoConta.hidden{display:none}
+/* sem foto, a câmera no canto do título do anotar; com foto, a miniatura da conta, torta como papel solto, que amplia */
+.fotoConta button.ico.amb.fotoCam{width:40px;height:34px;padding:0;justify-content:center}
+.fotoConta button.ico.amb.fotoCam svg{width:22px;height:22px}
+.fotoMini{display:block;width:40px;height:52px;padding:0;border:2px solid var(--ink);box-shadow:2px 2px 0 var(--sombra);transform:rotate(4deg);overflow:hidden;background:#fff}
+.fotoMini img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+.fotoGrandeBotoes{display:flex;justify-content:center;align-items:center;gap:16px}
 .fotoGrande{max-height:70vh;overflow:auto;margin:8px 0}
 .fotoGrande img{width:100%;display:block}
 .hr{border-top:2px dashed var(--rule);margin:12px 0}

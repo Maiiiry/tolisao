@@ -30,7 +30,7 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Cachorro “to ficando não-verbal (sem verba)” e o texto: tô lisa, quem me deve?">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="stylesheet" href="style.css?v=20261108b">
+<link rel="stylesheet" href="style.css?v=20261109a">
 </head>
 <body>
 <div id="overlay" class="hidden"><div class="paper" id="overlayBox" role="dialog" aria-modal="true"></div></div>
@@ -80,6 +80,7 @@
 <button id="fab" class="fab" title="Anotar" aria-label="anotar um gasto"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.4 3.9a2 2 0 0 1 2.8 2.8L8.1 17.8l-3.6.9.9-3.6L16.4 3.9Z"/><path d="M16 18h6M19 15v6"/></svg></button>
 <div id="sheet" class="hidden"><div class="paper" role="dialog" aria-modal="true" aria-labelledby="sheetTitulo">
   <h2 style="margin-top:0" id="sheetTitulo">Anotar</h2>
+  <div id="fotoConta" class="fotoConta hidden"></div>
   <form id="expenseForm">
     <div class="two"><input id="amount" type="text" inputmode="numeric" enterkeyhint="next" autocomplete="off" placeholder="0,00" required><input id="desc" placeholder="O quê?" required maxlength="60" enterkeyhint="done" autocomplete="off" autocapitalize="sentences"></div>
     <select id="payer" required></select>
@@ -95,7 +96,7 @@
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script src="qr.js?v=20261019b"></script>
-<script src="app.js?v=20261108b"></script>
+<script src="app.js?v=20261109a"></script>
 <!-- Cloudflare Web Analytics: conta visitas, sem cookie. Manda o endereço inteiro, ?evento= junto (decisão do dono). Os testes tiram (_serve.cjs) -->
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "3514c3d7f5b04f8281f536d90597445e"}'></script>
 <script>setTimeout(function(){var a=document.getElementById("app");if(a&&!a.classList.contains("nospin"))a.classList.remove("loading")},8000)</script>

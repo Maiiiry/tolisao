@@ -59,6 +59,8 @@ Given('que o {string} sumiu do banco', async ({ mundo }, nome) => { delete mundo
 Given('que eu pedi pra testar a galera de sempre', async ({ mundo }) => { naGaveta(mundo, 'tolisa', { galeraOn: true }); });
 Given('que neste aparelho eu me chamo {string}', async ({ mundo }, nome) => { naGaveta(mundo, 'tolisa', { myName: nome }); });
 Given('que eu pedi pra testar tudo', async ({ mundo }) => { naGaveta(mundo, 'tolisa', { testesOn: true }); });
+// o ?foto de antes do ?mesa: o aparelho que ligou por ele guardou o fotoOn
+Given('que eu tinha ligado a foto da conta pelo link antigo', async ({ mundo }) => { naGaveta(mundo, 'tolisa', { fotoOn: true }); });
 Given('que eu pedi pra testar o modo mesa', async ({ mundo }) => { naGaveta(mundo, 'tolisa', { mesaOn: true }); });
 
 // o tema: o botão do pé da nota, e o claro/escuro do celular
